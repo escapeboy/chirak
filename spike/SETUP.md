@@ -6,7 +6,7 @@ spike step prints PASS on the pod; the evidence is `/data/spike/out/results.tsv`
 `/data/spike/out/versions.txt`. How to (re)create the pod: [docs/runpod.md](../docs/runpod.md).
 
 The pod is a container. There is no OS-level setup: the base comes from the pod image,
-and everything below "Added on top" is installed onto the network volume at `/data`.
+and everything below "Added on top" is added on top of it. Durable state (models, runs, venv backup) lives on the network volume at `/data`.
 
 ## Pod
 
@@ -21,12 +21,12 @@ and everything below "Added on top" is installed onto the network volume at `/da
 | ROCm (in image) | TBD — step 1 | [unknown] |
 | torch (in image, used by vLLM) | TBD — step 8 | [unknown] |
 
-## Added on top (all on `/data`)
+## Added on top
 
 | Component | Value | Status |
 |---|---|---|
-| uv Python + cache | `/data/uv/python`, `/data/uv/cache` | [planned] |
-| Training venv | `/data/venv-train`, Python 3.12 | [planned] |
+| uv cache | `/data/uv/cache` | [planned] |
+| Training venv | `/opt/venv-train` (container disk), base `/usr/bin/python3` 3.12; tar backup `/data/venv-train.tar` | [planned] |
 | torch (training) | `2.14.1` from `https://download.pytorch.org/whl/rocm7.2` | [planned] |
 | unsloth | `unsloth[amd]` 2026.10.x, installed with torch overrides | [planned] |
 | transformers / trl / peft | whatever unsloth resolves — pinned here after step 8 | [unknown] |

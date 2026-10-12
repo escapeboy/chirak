@@ -15,7 +15,7 @@ export HF_HUB_DISABLE_XET=1
 export HF_HOME="${HF_HOME:-/data/hf}"
 VLLM_PORT="${VLLM_PORT:-8000}"
 VLLM_BIN="${VLLM_BIN:-vllm}"
-TRAIN_PY="${TRAIN_PY:-/data/venv-train/bin/python}"
+TRAIN_PY="${TRAIN_PY:-/opt/venv-train/bin/python}"
 
 STEP_START=$(date +%s)
 

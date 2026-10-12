@@ -32,7 +32,7 @@ rsync -az --no-owner --no-group -e "ssh -p $POD_SSH_PORT" --exclude .git ./ root
 ssh -p $POD_SSH_PORT root@$POD_SSH_HOST 'cd /data/chirak && spike/00-setup.sh && spike/run-all.sh'
 ```
 
-`00-setup.sh` is idempotent: on a fresh pod with the same volume it finds `/data/venv-train` and skips the install.
+`00-setup.sh` is idempotent. The venv lives on the container disk (`/opt/venv-train`) because the network volume is too slow for Python imports; a tar of it is kept at `/data/venv-train.tar` and restored on a fresh pod instead of reinstalling.
 
 ## Reach the worker
 
