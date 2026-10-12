@@ -114,5 +114,5 @@ with open(os.path.join(args.out, "train_summary.json"), "w") as f:
     json.dump(summary, f, indent=2)
 print(json.dumps({k: v for k, v in summary.items() if k != "loss_curve"}, indent=2))
 ok = len(losses) >= 10 and last < first
-print(("PASS" if ok else "FAIL") + f" loss {first:.3f} -> {last:.3f} in {wall:.0f}s")
+print(("PASS" if ok else "FAIL") + f" loss {first:.3f} -> {last:.3f} in {wall:.0f}s, VRAM peak {summary['peak_vram_gb']} GB (torch)")
 sys.exit(0 if ok else 1)

@@ -3,7 +3,7 @@
 # BACKEND=peft runs the documented fallback (transformers+peft+trl).
 . "$(dirname "$0")/lib.sh"
 : "${STUDENT_MODEL:?set STUDENT_MODEL}"
-PY="${TRAIN_PY:-/opt/chirak-venv/bin/python}"
+PY="$TRAIN_PY"
 BACKEND="${BACKEND:-unsloth}"
 OUT="/data/spike/train-${BACKEND}"
 mkdir -p "$OUT"

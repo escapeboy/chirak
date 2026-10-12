@@ -36,5 +36,5 @@ out = {
 }
 print(json.dumps(out, indent=2))
 ok = model.device.type == "cuda" and min(sims[:-1]) > sims[-1]
-print(("PASS" if ok else "FAIL") + f" {name} on {model.device}, {round(rate)} texts/s")
+print(("PASS" if ok else "FAIL") + f" {name} on {model.device}, {round(rate)} texts/s, VRAM peak {torch.cuda.max_memory_allocated() / 1e9:.1f} GB (torch)")
 sys.exit(0 if ok else 1)

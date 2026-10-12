@@ -15,5 +15,6 @@ fi
 "$S/05-vllm-lora.sh" || exit 1
 "$S/06-embed.sh"
 "$S/07-concurrency.sh"
+"$S/08-versions.sh" >/dev/null
 
 echo; column -t -s $'\t' "$OUT_DIR/results.tsv"

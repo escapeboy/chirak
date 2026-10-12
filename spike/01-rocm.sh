@@ -8,7 +8,6 @@
   echo "== ROCm version"; cat /opt/rocm/.info/version 2>/dev/null
   echo "== amd-smi"; amd-smi version 2>/dev/null || echo "amd-smi not found"
   echo "== rocm examine"; command -v rocm >/dev/null && rocm examine || echo "rocm CLI not installed"
-  echo "== docker"; docker --version
   echo "== HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-<unset>}"
 } 2>&1 | tee "$OUT_DIR/01-rocm.log"
 
