@@ -1,8 +1,7 @@
 # Spike setup — RunPod, 1× AMD MI300X
 
-Status: **scripts written, not yet run on hardware.** Values marked `[planned]` come from
-documentation read on 2026-10-12. A value becomes `[verified]` only after the matching
-spike step prints PASS on the pod; the evidence is `/data/spike/out/results.tsv` and
+Status: **all 8 steps PASS on 2026-10-12** (pod `jyipvchu8hbclj`, EU-RO-1). A value is
+`[verified]` because the matching spike step printed PASS on the pod; the evidence is `/data/spike/out/results.tsv` and
 `/data/spike/out/versions.txt`. How to (re)create the pod: [docs/runpod.md](../docs/runpod.md).
 
 The pod is a container. There is no OS-level setup: the base comes from the pod image,
@@ -12,35 +11,35 @@ and everything below "Added on top" is added on top of it. Durable state (models
 
 | Item | Value | Status |
 |---|---|---|
-| Provider / cloud | RunPod Secure Cloud, On-Demand | [planned] |
-| GPU type | `AMD Instinct MI300X OAM` ×1 (192 GB), ~$2.39/h | [planned] |
-| Pod image | `vllm/vllm-openai-rocm:v0.31.0` (ROCm 7.2.3 base, vLLM 0.31.0) | [planned] |
-| RunPod template | none — custom image, entrypoint overridden (see docs/runpod.md) | [planned] |
-| Network volume | mounted at `/data` | [planned] |
-| Exposed ports | `22/tcp` only | [planned] |
-| ROCm (in image) | TBD — step 1 | [unknown] |
-| torch (in image, used by vLLM) | TBD — step 8 | [unknown] |
+| Provider / cloud | RunPod Secure Cloud, On-Demand, EU-RO-1 | [verified] |
+| GPU type | `AMD Instinct MI300X OAM` ×1 (192 GB, SKU MI3SRIOV, gfx942), $2.39/h | [verified] |
+| Pod image | `vllm/vllm-openai-rocm:v0.31.0` (ROCm 7.2.3 base, vLLM 0.31.0+rocm723) | [verified] |
+| RunPod template | none — custom image, entrypoint overridden (see docs/runpod.md) | [verified] |
+| Network volume | `729cerk1o4`, 150 GB, mounted at `/data` | [verified] |
+| Exposed ports | `22/tcp` only | [verified] |
+| ROCm (in image) | 7.2.3, amdgpu driver 6.10.5 | [verified] |
+| torch (in image, used by vLLM) | 2.13.0+git733fca1 (hip 7.2.53211); transformers 5.17.0 | [verified] |
 
 ## Added on top
 
 | Component | Value | Status |
 |---|---|---|
-| uv cache | `/data/uv/cache` | [planned] |
-| Training venv | `/opt/venv-train` (container disk), base `/usr/bin/python3` 3.12; tar backup `/data/venv-train.tar` | [planned] |
-| torch (training) | `2.14.1` from `https://download.pytorch.org/whl/rocm7.2` | [planned] |
-| unsloth | `unsloth[amd]` 2026.10.x, installed with torch overrides | [planned] |
-| transformers / trl / peft | whatever unsloth resolves — pinned here after step 8 | [unknown] |
-| sentence-transformers | latest, same venv | [unknown] |
-| bitsandbytes | **not installed** (checked by step 8) | [planned] |
+| uv cache | `/data/uv/cache` | [verified] |
+| Training venv | `/opt/venv-train` (container disk), base `/usr/bin/python3` 3.12; tar backup `/data/venv-train.tar` (16.4 GB) | [verified] |
+| torch (training) | `2.14.1+rocm7.2` from `https://download.pytorch.org/whl/rocm7.2` | [verified] |
+| unsloth | `unsloth[amd]` 2026.10.4 installed, **not usable**: import requires bitsandbytes (see Workarounds) | [verified] |
+| transformers / trl / peft | 5.17.0 / 1.15.0 / 0.21.2 — the training backend (`BACKEND=peft`) | [verified] |
+| sentence-transformers | 6.1.0, same venv | [verified] |
+| bitsandbytes | **not installed** (checked by step 8) | [verified] |
 
 ## Models
 
 | Role | HF id | Status |
 |---|---|---|
-| Generator | `Qwen/Qwen3.8-27B` (Apache-2.0, dense 27.8B) | [planned] |
+| Generator | `Qwen/Qwen3.8-27B` (Apache-2.0, dense 27.8B) | [verified] |
 | Generator fallback | `google/gemma-4-26B-A4B-it` (check licence before use) | [planned] |
-| Student | `Qwen/Qwen3.5-4B` (Apache-2.0); fallback `Qwen/Qwen3.5-9B` | [planned] |
-| Embeddings | `BAAI/bge-m3` (MIT) | [planned] |
+| Student | `Qwen/Qwen3.5-4B` (Apache-2.0); fallback `Qwen/Qwen3.5-9B` | [verified] (4B) |
+| Embeddings | `BAAI/bge-m3` (MIT) | [verified] |
 
 ## Env
 
@@ -69,10 +68,41 @@ Not used: `VLLM_USE_TRITON_FLASH_ATTN` (removed in vLLM 0.31), bitsandbytes, QLo
 cd /data/chirak && spike/00-setup.sh && spike/run-all.sh
 ```
 
-## Results
+## Results (2026-10-12, final run of each step)
 
-Filled from `/data/spike/out/results.tsv` after the run. Nothing here yet.
+| Step | Result | Wall | VRAM peak | Note |
+|---|---|---|---|---|
+| 1 ROCm | PASS | 0 s | — | ROCm 7.2.3, gfx942 visible, `/dev/kfd` present |
+| 2 torch bf16 | PASS | 7 s | — | 8192² bf16 matmul 191.7 TFLOPS, error vs fp32 within 0.02 |
+| 3 vLLM generator | PASS | 406 s | 171.8 GB | Qwen3.8-27B at 0.85 memory, 889.3 tok/s at 32 concurrent × 256 tokens; fluent Bulgarian |
+| 4 LoRA train | PASS (peft) | 228 s (171 s training) | 11.3 GB | 300 steps, bf16, adamw_torch; loss 0.307 → 0.029 (mean of first/last 5 logs) |
+| 5 LoRA in vLLM | PASS | 147 s | 62.5 GB (whole GPU, vLLM at 0.3) | runtime hot-load `/v1/load_lora_adapter` HTTP 200; 4/4 answers differ (base `"business"`, adapter `"B"`) |
+| 6 embeddings | PASS | 31 s | 2.6 GB | bge-m3 on GPU, 6779 texts/s; BG/EN paraphrase 0.89/0.98 vs unrelated 0.47 |
+| 7 concurrency | PASS | 569 s | 205.9 GB (whole GPU, at the limit) | generator at 0.5 + `--max-num-seqs 256`, 150-step training alongside: train OK (96 s), bench 782.9 tok/s |
+| 8 versions | PASS | — | — | see tables above; bitsandbytes absent |
+
+Evidence: `/data/spike/out/` on the volume (`results.tsv`, `results-run1.tsv` = first run with
+the failures below, per-step logs, `versions.txt`, `pip-freeze-train.txt`).
+
+Decision from step 7: vLLM may stay up during training, but VRAM peaks at the GPU limit, so
+the worker still stops the generator before a training job when it does not need it.
 
 ## Workarounds needed
 
-None recorded yet.
+1. **Unsloth cannot be used without bitsandbytes.** `unsloth` 2026.10.4 fails on import:
+   `ImportError: Unsloth: Please install bitsandbytes`. Installing it is forbidden (bf16 LoRA
+   only), so the documented fallback transformers + peft + trl is the training backend.
+2. **Adapter key names for Qwen3.5 (VL checkpoint).** `AutoModelForCausalLM` loads only the
+   text model, so peft saves keys as `base_model.model.model.layers.*`. vLLM serves
+   `Qwen3_5ForConditionalGeneration` and **silently ignores** those weights: hot-load returns
+   200, but logprobs are identical to the base model to 5 decimals. Renaming the keys to
+   `base_model.model.model.language_model.layers.*` makes vLLM apply them (logprobs change).
+   `train_lora.py` does the rename after saving; the worker must do the same.
+3. **Step 5 test task.** With word labels the base model already answered AG News correctly,
+   so identical answers proved nothing. The adapter is now trained to answer with codes
+   (W/S/B/T) while the prompt names the topics in words.
+4. **Step 7: `max_num_seqs`.** Qwen3.8-27B is hybrid (Mamba-style cache). At 0.5 memory there are
+   679 cache blocks and vLLM's default `max_num_seqs` 1024 fails at startup. `--max-num-seqs 256`.
+5. **Venv on container disk.** Importing from a venv on the `/data` network volume hung for
+   >5 min (I/O). The venv lives in `/opt/venv-train`, restored from `/data/venv-train.tar`.
+6. **`rocminfo | grep -q` under `pipefail`** gave a false FAIL (SIGPIPE); step 1 captures first.

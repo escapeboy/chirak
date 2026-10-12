@@ -6,7 +6,7 @@
 : "${GENERATOR_MODEL:?}" "${STUDENT_MODEL:?}"
 
 w=$(vram_peak_watch "$OUT_DIR/07-vram.txt")
-vllm_start 07-vllm.log "$GENERATOR_MODEL" --max-model-len 8192 --gpu-memory-utilization 0.5 ${GEN_EXTRA_ARGS:-}
+vllm_start 07-vllm.log "$GENERATOR_MODEL" --max-model-len 8192 --gpu-memory-utilization 0.5 --max-num-seqs 256 ${GEN_EXTRA_ARGS:-}
 if ! wait_vllm 1800; then
   kill "$w"; vllm_stop
   result 07-concurrency FAIL "generator at 0.5 did not start; decision: stop vLLM during training"

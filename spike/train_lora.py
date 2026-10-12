@@ -1,7 +1,8 @@
 """Step 4: bf16 LoRA SFT of the student model for N steps on a public dataset.
 
-Task: AG News topic classification with strict JSON output, so the trained
-adapter's answers are easy to tell apart from the base model's in step 5.
+Task: AG News topic classification with strict JSON output. The prompt names the
+topics in words, but the target answer is a one-letter code (W/S/B/T). The base
+model answers with words, so a working adapter is easy to tell apart in step 5.
 No quantization, no bitsandbytes: bf16 weights + adamw_torch only.
 
 Usage: train_lora.py --model <hf id> --out <dir> [--backend unsloth|peft] [--max-steps 300]
@@ -16,6 +17,7 @@ import torch
 from datasets import load_dataset
 
 LABELS = ["world", "sports", "business", "science_tech"]
+CODES = ["W", "S", "B", "T"]
 SYSTEM = "Classify the news headline. Answer only with JSON: {\"topic\": one of " + json.dumps(LABELS) + "}."
 TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
@@ -42,7 +44,7 @@ def to_example(row):
             {"role": "user", "content": row["text"]},
         ],
         "completion": [
-            {"role": "assistant", "content": json.dumps({"topic": LABELS[row["label"]]})},
+            {"role": "assistant", "content": json.dumps({"topic": CODES[row["label"]]})},
         ],
     }
 
@@ -95,6 +97,19 @@ wall = time.time() - start
 adapter_dir = os.path.join(args.out, "adapter")
 trainer.model.save_pretrained(adapter_dir)
 tokenizer.save_pretrained(adapter_dir)
+
+# Qwen3.5 is a vision-language checkpoint. AutoModelForCausalLM loads only its text
+# model, so peft saves keys as model.layers.*; vLLM serves the full VL model and
+# silently ignores LoRA weights that are not under model.language_model.layers.*
+# (spike step 5: identical logprobs to base before this rename, different after).
+if args.backend == "peft":
+    from safetensors.torch import load_file, save_file
+
+    path = os.path.join(adapter_dir, "adapter_model.safetensors")
+    sd = load_file(path)
+    if any(k.startswith("base_model.model.model.layers.") for k in sd):
+        sd = {k.replace("base_model.model.model.layers.", "base_model.model.model.language_model.layers."): v for k, v in sd.items()}
+        save_file(sd, path)
 
 losses = [h["loss"] for h in trainer.state.log_history if "loss" in h]
 first, last = sum(losses[:5]) / 5, sum(losses[-5:]) / 5
