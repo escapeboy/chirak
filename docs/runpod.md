@@ -28,7 +28,7 @@ the network volume at `/data` is lost when the pod is terminated.
 ## Put the code on the pod
 
 ```bash
-rsync -az -e "ssh -p $POD_SSH_PORT" --exclude .git ./ root@$POD_SSH_HOST:/data/chirak/   # includes .env; .env is never committed
+rsync -az --no-owner --no-group -e "ssh -p $POD_SSH_PORT" --exclude .git ./ root@$POD_SSH_HOST:/data/chirak/   # includes .env; .env is never committed
 ssh -p $POD_SSH_PORT root@$POD_SSH_HOST 'cd /data/chirak && spike/00-setup.sh && spike/run-all.sh'
 ```
 

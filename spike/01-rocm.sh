@@ -11,7 +11,9 @@
   echo "== HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-<unset>}"
 } 2>&1 | tee "$OUT_DIR/01-rocm.log"
 
-if rocminfo 2>/dev/null | grep -q gfx942; then
+# Capture first: with pipefail, `rocminfo | grep -q` fails when grep exits early (SIGPIPE).
+agents=$(rocminfo 2>/dev/null)
+if grep -q 'Name: *gfx942' <<<"$agents"; then
   result 01-rocm PASS "ROCm $(cat /opt/rocm/.info/version 2>/dev/null), gfx942 visible"
 else
   result 01-rocm FAIL "gfx942 not found in rocminfo"

@@ -2,7 +2,7 @@
 # Step 8 input: print every version that goes into spike/SETUP.md.
 . "$(dirname "$0")/lib.sh"
 {
-  echo "pod_id=${RUNPOD_POD_ID:-?} gpu=$(rocm-smi --showproductname 2>/dev/null | grep -m1 -i 'card series' | sed 's/.*: *//')"
+  echo "pod_id=${RUNPOD_POD_ID:-?} gpu=$(rocm-smi --showproductname 2>/dev/null | grep -m1 -i 'card sku' | sed 's/.*: *//')"
   echo "rocm=$(cat /opt/rocm/.info/version 2>/dev/null)"
   echo "== serving env (pod image)"
   python3 -c "import torch, vllm, transformers; print('torch', torch.__version__, 'hip', torch.version.hip); print('vllm', vllm.__version__); print('transformers', transformers.__version__)" 2>&1
