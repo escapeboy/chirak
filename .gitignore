@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# datasets and model artifacts never go into git
+/data/
+*.jsonl
+!worker/tests/fixtures/*.jsonl
+*.safetensors
+*.bin
+adapters/
+spike/out/
+
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.DS_Store
+node_modules/
+vendor/

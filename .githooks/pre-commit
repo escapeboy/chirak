@@ -1,0 +1,10 @@
+#!/bin/sh
+# Refuse commits that contain API keys or tokens (Anthropic, Hugging Face, GitHub, generic bearer).
+if git diff --cached -U0 | grep -E '^\+' | grep -qE 'sk-ant-[A-Za-z0-9_-]{20,}|hf_[A-Za-z0-9]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|WORKER_BEARER_TOKEN=[0-9a-f]{16,}'; then
+  echo "pre-commit: staged changes contain what looks like a secret. Commit refused." >&2
+  exit 1
+fi
+if git diff --cached --name-only | grep -qE '(^|/)\.env$'; then
+  echo "pre-commit: .env must never be committed." >&2
+  exit 1
+fi
