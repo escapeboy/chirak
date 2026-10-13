@@ -106,3 +106,22 @@ the worker still stops the generator before a training job when it does not need
 5. **Venv on container disk.** Importing from a venv on the `/data` network volume hung for
    >5 min (I/O). The venv lives in `/opt/venv-train`, restored from `/data/venv-train.tar`.
 6. **`rocminfo | grep -q` under `pipefail`** gave a false FAIL (SIGPIPE); step 1 captures first.
+
+## MI350X re-verification (2026-10-13)
+
+MI300X was out of stock in every RunPod region from 06:12 UTC, so the work moved to
+`AMD Instinct MI350 OAM` (MI350X, gfx950, 288 GB, $5.49/h, US, pod `kjek315yyuob1d`) with a 300 GB pod
+volume instead of the EU-RO-1 network volume. Same image and pins; `spike/10-fresh-pod.sh` builds
+the venv and downloads the three models in parallel (models 2 min, venv 1 min).
+
+| Check | Result | Wall | Note |
+|---|---|---|---|
+| 2 torch bf16 | PASS | 4 s | 49.4 TFLOPS (MI300X: 191.7); torch 2.14.1+rocm7.2 is not tuned for gfx950 yet |
+| 4 LoRA train (peft) | PASS | 184 s | loss 0.308 → 0.029 in 127 s, 11.3 GB |
+| 5 LoRA in vLLM | PASS | 66 s | 4/4 answers differ (base `"science_tech"`, adapter `"T"`) |
+| worker smoke: health / generate / train / evaluate / serve | PASS | 219 / 126 / 206 / 6 s | through the SSH tunnel |
+| end-to-end Laravel run (template seeds, eval 30, train 150) | completed | 18 min | stopped by "3 iterations"; `make eval` reproduced iter-3 macro-F1 0.8501 on the same eval sha |
+
+RunPod notes: the REST API's `gpuTypeIds` enum has no MI350X, so the pod is created through
+GraphQL `podFindAndDeployOnDemand`; GraphQL cannot override the image entrypoint, so it uses a
+private template (`8syzxxdnn2`) that sets `dockerEntrypoint: ["bash","-c"]`.
