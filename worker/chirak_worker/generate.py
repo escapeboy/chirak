@@ -81,19 +81,23 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     rdir = settings.runs_dir / req.run_id
     rdir.mkdir(parents=True, exist_ok=True)
     is_eval = req.purpose == "eval"
-    out_path = rdir / ("eval.jsonl" if is_eval else f"train-{req.iteration}.jsonl")
-    if is_eval and out_path.exists():
-        raise RuntimeError("eval.jsonl already exists; the eval set is frozen")
+    # A pool goes through the eval generation path (prompt, seeds, temperature) into its own file; it is
+    # never frozen. It exists to collect the candidates the label check rejects (the ambiguous tickets).
+    eval_like = req.purpose in ("eval", "pool")
+    prefix = {"eval": "eval", "pool": f"pool-{req.iteration}"}.get(req.purpose, f"train-{req.iteration}")
+    out_path = rdir / f"{prefix}.jsonl"
+    if eval_like and out_path.exists():
+        raise RuntimeError(f"{out_path.name} already exists")
     if is_eval:
         # `make eval` re-scores an adapter with the run's own spec, read from here.
         _atomic_write(rdir / "task_spec.json", spec.model_dump_json(indent=2))
 
-    seeds = [s.model_dump() for s in req.seed_examples] if is_eval else []
+    seeds = [s.model_dump() for s in req.seed_examples] if eval_like else []
     rng = random.Random(f"{req.run_id}/{req.purpose}/{req.iteration}")
     slices = plan_slices(req)
     quota = {s["name"]: s["n"] for s in slices}
-    avoid_texts = [] if is_eval else read_avoid_texts(avoid_files)
-    guard = None if is_eval else LeakageGuard(embedder, avoid_texts)
+    avoid_texts = [] if eval_like else read_avoid_texts(avoid_files)
+    guard = None if eval_like else LeakageGuard(embedder, avoid_texts)
     # Slice guidance comes from Claude's failure analysis, which sees eval failures. Guidance that
     # quotes eval text would put eval content into the train prompt, so it is dropped here.
     guidance_rejected = 0
@@ -110,6 +114,7 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     accepted: list[dict] = []
     accepted_emb = [embedder.encode([s["input"] for s in seeds])] if seeds else []
     dropped = dict.fromkeys(DROP_KEYS, 0)
+    mismatched: list[dict] = []  # label-check rejects, kept with both labels
     n_candidates = 0
     total_target = sum(quota.values())
 
@@ -138,9 +143,12 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         for r in leaks:
             if r:
                 dropped[r] += 1
-        agree = _labels_agree(spec, llm, settings, [candidates[i] for i in clean])
-        dropped["label_mismatch"] += agree.count(False)
-        clean = [i for i, ok in zip(clean, agree) if ok]
+        blind = _blind_labels(spec, llm, settings, [candidates[i] for i in clean])
+        for i, got in zip(clean, blind):
+            if got != candidates[i]["output"]:
+                mismatched.append({**candidates[i], "blind": got, "round": rnd})
+        dropped["label_mismatch"] = len(mismatched)
+        clean = [i for i, got in zip(clean, blind) if got == candidates[i]["output"]]
         known = np.vstack(accepted_emb) if accepted_emb else None
         keep = dedup(emb[clean], known) if clean else []
         new_emb = []
@@ -161,10 +169,10 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         final += [a for a in accepted if a["slice"] == name][:q]
     rng.shuffle(final)
 
-    prefix = "eval" if is_eval else f"train-{req.iteration}"
     primary = spec.primary.name
     rows = [{"id": f"eval-{i:04d}", "input": s["input"], "output": s["output"], "slice": s["output"][primary],
-             "lang": _detect_lang(s["input"], spec.languages), "source": "seed"} for i, s in enumerate(seeds, 1)]
+             "lang": _detect_lang(s["input"], spec.languages), "source": "seed"}
+            for i, s in enumerate(seeds if is_eval else [], 1)]
     start = len(rows) + 1
     rows += [{"id": f"{prefix}-{i:04d}", "input": c["input"], "output": c["output"], "slice": c["slice"],
               "lang": c["lang"], "source": "synthetic"} for i, c in enumerate(final, start)]
@@ -172,6 +180,11 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     digest = file_sha256(out_path)
     if is_eval:
         _atomic_write(rdir / "eval.sha256", digest + "\n")
+    dropped_path = rdir / f"{prefix}.dropped.jsonl"
+    _atomic_write(dropped_path, "".join(json.dumps(
+        {"id": f"{prefix}-drop-{i:04d}", "input": m["input"], "proposed": m["output"], "blind": m["blind"],
+         "slice": m["slice"], "lang": m["lang"], "round": m["round"], "reason": "label_mismatch"},
+        ensure_ascii=False) + "\n" for i, m in enumerate(mismatched, 1)))
 
     by_slice: dict[str, int] = {}
     for c in final:
@@ -180,36 +193,37 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     return {
         "path": str(out_path), "sha256": digest, "n": len(final), "n_candidates": n_candidates,
         "by_slice": by_slice, "dropped": dropped,
-        "leakage_drop_rate": 0 if is_eval or not n_candidates else round(leaked / n_candidates, 4),
+        "leakage_drop_rate": 0 if eval_like or not n_candidates else round(leaked / n_candidates, 4),
         "frozen": is_eval,
         "guidance_rejected": guidance_rejected,
+        "dropped_path": str(dropped_path),
     }
 
 
-def _labels_agree(spec: TaskSpec, llm: LlmBackend, settings: Settings, candidates: list[dict]) -> list[bool]:
+def _blind_labels(spec: TaskSpec, llm: LlmBackend, settings: Settings, candidates: list[dict]) -> list[dict | None]:
     """Blind re-label: the generator gets the student's exact instructions (no target label) at temperature 0.
     A candidate is kept only if that answer equals its target output; label-conditioned text can contradict
-    its randomly drawn urgency/flags, and such items would put label noise into eval and train."""
-    def one(c: dict) -> bool:
+    its randomly drawn urgency/flags, and such items would put label noise into eval and train.
+    None means the request failed or the answer did not parse."""
+    def one(c: dict) -> dict | None:
         try:
             raw, _ = llm.chat("base", student_messages(spec, c["input"]), temperature=0.0, max_tokens=100)
         except Exception:
-            return False
-        got, _ = parse_student_answer(raw, spec)
-        return got == c["output"]
+            return None
+        return parse_student_answer(raw, spec)[0]
 
     with ThreadPoolExecutor(settings.gen_concurrency) as ex:
         return list(ex.map(one, candidates))
 
 
 def _generate_round(req, spec, llm, settings, targets, seeds, ctx, accepted_n, total) -> list[dict]:
-    temp = 0.7 if req.purpose == "eval" else 1.0
+    temp = 0.7 if req.purpose in ("eval", "pool") else 1.0
     batches = _batches(targets)
     done = 0
 
     def one(batch: list[dict]) -> list[dict]:
         guidance = batch[0]["guidance"]
-        if req.purpose == "eval":
+        if req.purpose in ("eval", "pool"):
             messages = build_eval_generation_prompt(spec, batch, seeds, guidance)
         else:
             messages = build_train_generation_prompt(spec, batch, guidance)

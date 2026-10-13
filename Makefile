@@ -18,9 +18,10 @@ app-test:
 health-smoke generate-smoke train-smoke evaluate-smoke serve-smoke:
 	$(MAKE) -C worker $@
 
-# make eval RUN=<run_id> ADAPTER=/data/runs/<run_id>/iter-N/adapter   (or ADAPTER=base)
+# make eval RUN=<run_id> ADAPTER=/data/runs/<run_id>/iter-N/adapter   (or ADAPTER=base) [EVAL=eval-hard]
+EVAL ?= eval
 eval:
-	$(MAKE) -C worker eval RUN=$(RUN) ADAPTER=$(ADAPTER)
+	$(MAKE) -C worker eval RUN=$(RUN) ADAPTER=$(ADAPTER) EVAL=$(EVAL)
 
 tunnel:
 	ssh -N -L 8100:127.0.0.1:8100 -p $(POD_SSH_PORT) root@$(POD_SSH_HOST)

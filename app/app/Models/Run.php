@@ -48,9 +48,16 @@ class Run extends Model
         return $this->hasMany(Iteration::class)->orderBy('n');
     }
 
+    /** Scores on the frozen eval (the "clean" slice). */
     public function evaluations(): HasMany
     {
-        return $this->hasMany(Evaluation::class);
+        return $this->hasMany(Evaluation::class)->where('slice', 'clean');
+    }
+
+    /** Scores on eval-hard (the human-arbitrated "hard" slice), when the run has one. */
+    public function hardEvaluations(): HasMany
+    {
+        return $this->hasMany(Evaluation::class)->where('slice', 'hard');
     }
 
     public function decisions(): HasMany

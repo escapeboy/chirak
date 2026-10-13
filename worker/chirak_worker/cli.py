@@ -13,7 +13,9 @@ def cmd_eval(c: WorkerClient, a) -> None:
     spec = json.loads(Path(a.spec).read_text()) if a.spec else json.loads(c.artifact(a.run, "task_spec.json"))
     base = a.adapter == "base"
     label = a.label or ("base" if base else Path(a.adapter).parent.name)
-    m = c.run("/evaluate", {"run_id": a.run, "eval_file": a.eval_file or f"{data}/runs/{a.run}/eval.jsonl",
+    if not a.label and a.eval != "eval":
+        label += f".{a.eval}"  # keep results on another eval set apart from evals/<label> of the frozen eval
+    m = c.run("/evaluate", {"run_id": a.run, "eval_file": a.eval_file or f"{data}/runs/{a.run}/{a.eval}.jsonl",
                             "model": a.adapter, "task_spec": spec, "label": label})
     if not a.full:
         m = {**m, "failures": f"{len(m['failures'])} items (use --full to print)"}
@@ -31,6 +33,7 @@ def main(argv=None) -> int:
     e.add_argument("--adapter", required=True, help="adapter directory or 'base'")
     e.add_argument("--label")
     e.add_argument("--eval-file")
+    e.add_argument("--eval", default="eval", help="dataset name in the run directory: eval (default) or eval-hard")
     e.add_argument("--spec", help="task spec JSON; default: <run>/task_spec.json from the worker")
     e.add_argument("--full", action="store_true")
     s = sub.add_parser("smoke")

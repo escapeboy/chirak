@@ -33,6 +33,8 @@ serve-smoke: $(DEPS)
 	$(CLI) smoke serve
 
 # make eval RUN=demo-1 ADAPTER=/data/runs/demo-1/iter-1/adapter   (or ADAPTER=base)
+# EVAL=eval-hard scores the run's eval-hard.jsonl instead of the frozen eval.jsonl.
+EVAL ?= eval
 eval: $(DEPS)
-	@test -n "$(RUN)" -a -n "$(ADAPTER)" || { echo "usage: make eval RUN=<run_id> ADAPTER=<adapter_path|base>"; exit 2; }
-	$(CLI) eval --run $(RUN) --adapter $(ADAPTER) $(EVAL_ARGS)
+	@test -n "$(RUN)" -a -n "$(ADAPTER)" || { echo "usage: make eval RUN=<run_id> ADAPTER=<adapter_path|base> [EVAL=eval|eval-hard]"; exit 2; }
+	$(CLI) eval --run $(RUN) --adapter $(ADAPTER) --eval $(EVAL) $(EVAL_ARGS)

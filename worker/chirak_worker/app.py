@@ -91,6 +91,8 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         rdir = run_dir(settings, req.run_id)
         if req.purpose == "eval" and (rdir / "eval.jsonl").exists():
             raise HTTPException(409, "eval.jsonl already exists for this run; the eval set is frozen")
+        if req.purpose == "pool" and (rdir / f"pool-{req.iteration}.jsonl").exists():
+            raise HTTPException(409, f"pool-{req.iteration}.jsonl already exists for this run")
         avoid = [str(resolve_under_runs(settings, p)) for p in req.avoid_near] if req.purpose == "train" else []
         if req.purpose == "train" and str(resolve_under_runs(settings, str(rdir / "eval.jsonl"))) not in avoid:
             # without the run's own eval file the leakage guard would silently check nothing

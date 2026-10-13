@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Evaluation extends Model
 {
-    protected $fillable = ['run_id', 'iteration', 'adapter_path', 'metrics', 'failures', 'eval_sha256'];
+    protected $fillable = ['run_id', 'dataset_id', 'slice', 'iteration', 'adapter_path', 'metrics', 'failures', 'eval_sha256'];
 
     protected function casts(): array
     {

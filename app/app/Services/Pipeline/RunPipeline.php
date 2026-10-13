@@ -330,7 +330,8 @@ class RunPipeline
 
     private function storeEvaluation(Run $run, ?int $iteration, array $metrics): void
     {
-        $evalSha = $this->dataset($run, 'eval')->sha256;
+        $evalSet = $this->dataset($run, 'eval');
+        $evalSha = $evalSet->sha256;
         if (($metrics['eval_sha256'] ?? null) !== $evalSha) {
             throw new WorkerRejected(409, 'eval set hash changed: stored '.$evalSha.', evaluation used '.($metrics['eval_sha256'] ?? 'none'));
         }
@@ -339,8 +340,9 @@ class RunPipeline
         unset($metrics['failures']);
 
         Evaluation::updateOrCreate(
-            ['run_id' => $run->id, 'iteration' => $iteration],
+            ['run_id' => $run->id, 'slice' => 'clean', 'iteration' => $iteration],
             [
+                'dataset_id' => $evalSet->id,
                 'adapter_path' => $iteration === null ? null : $run->iterations()->where('n', $iteration)->value('adapter_path'),
                 'metrics' => $metrics,
                 'failures' => $failures,

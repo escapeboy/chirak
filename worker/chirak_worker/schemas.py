@@ -55,7 +55,7 @@ class TargetSlice(BaseModel):
 
 class GenerateRequest(BaseModel):
     run_id: str = Field(pattern=RUN_ID_PATTERN)
-    purpose: Literal["eval", "train"]
+    purpose: Literal["eval", "train", "pool"]
     iteration: int = Field(default=1, ge=1)
     task_spec: TaskSpec
     seed_examples: list[SeedExample] = Field(default_factory=list)

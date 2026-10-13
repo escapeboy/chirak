@@ -92,6 +92,27 @@ def test_generated_items_whose_blind_label_disagrees_are_dropped(client, setting
     assert res["dropped"]["label_mismatch"] == 2 and res["n"] == 9
     relabels = [m for _, t, m in llm.prompts if t == 0.0]
     assert relabels and all("label:" not in m[-1]["content"] for m in relabels)  # the target is never shown
+    kept = read_jsonl(settings.runs_dir / "demo-1" / "eval.dropped.jsonl")
+    assert res["dropped_path"].endswith("eval.dropped.jsonl") and len(kept) == 2
+    assert all(k["blind"]["urgent"] != k["proposed"]["urgent"] and k["reason"] == "label_mismatch" for k in kept)
+    assert all(set(k) == {"id", "input", "proposed", "blind", "slice", "lang", "round", "reason"} for k in kept)
+
+
+def test_pool_uses_the_eval_path_without_touching_the_frozen_eval(client, settings, spec_dict, llm):
+    seeds = [{"input": "Seed ticket about the parcel", "output": {"category": "orders", "urgent": True}}]
+    wait_job(client, client.post("/generate", json=gen_body(spec_dict, seed_examples=seeds)).json()["job_id"])
+    rdir = settings.runs_dir / "demo-1"
+    frozen = (rdir / "eval.jsonl").read_bytes()
+    llm.prompts.clear()
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict, purpose="pool", seed_examples=seeds)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["path"] == str(rdir / "pool-1.jsonl") and res["frozen"] is False
+    assert (rdir / "eval.jsonl").read_bytes() == frozen and (rdir / "pool-1.dropped.jsonl").exists()
+    assert {r["source"] for r in read_jsonl(rdir / "pool-1.jsonl")} == {"synthetic"}
+    _, temp, msgs = llm.prompts[0]
+    assert temp == 0.7 and "Seed ticket" in json.dumps(msgs)
+    assert client.post("/generate", json=gen_body(spec_dict, purpose="pool")).status_code == 409
 
 
 def test_quota_is_filled_when_the_label_check_rejects_most_candidates(client, spec_dict, llm):
