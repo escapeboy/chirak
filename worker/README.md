@@ -1,6 +1,6 @@
 # Chirak GPU worker
 
-FastAPI service that runs on the RunPod MI300X pod. It generates data with a vLLM-served generator,
+FastAPI service that runs on a RunPod AMD Instinct pod (MI300X or MI350X, see spike/SETUP.md). It generates data with a vLLM-served generator,
 trains a bf16 LoRA on the student model (transformers + peft + trl), evaluates strictly, and serves
 adapters. It makes no decisions; the Laravel control plane calls it. The API is specified in
 [docs/worker-api.md](../docs/worker-api.md). Environment facts: [spike/SETUP.md](../spike/SETUP.md).

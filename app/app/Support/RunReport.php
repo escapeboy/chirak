@@ -99,12 +99,13 @@ class RunReport
         return $this->baseline()?->metrics['confusion'] ?? null ? 'Baseline' : null;
     }
 
-    /** @return array<int, array{iteration: int, dropped: int, candidates: ?int, rate: float, stopped: bool}> */
+    /** @return array<int, array{iteration: int, dropped: int, label_mismatch: ?int, candidates: ?int, rate: float, stopped: bool}> */
     public function leakage(): array
     {
         return $this->datasets->where('purpose', 'train')->sortBy('iteration')->map(fn (Dataset $d) => [
             'iteration' => $d->iteration,
             'dropped' => $d->leakageDropped(),
+            'label_mismatch' => $d->stats['dropped']['label_mismatch'] ?? null,
             'candidates' => $d->stats['n_candidates'] ?? null,
             'rate' => $d->leakageDropRate(),
             'stopped' => \App\Services\Pipeline\StopRules::leakageExceeded($d->leakageDropRate()),

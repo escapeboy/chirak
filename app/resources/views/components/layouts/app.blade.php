@@ -37,7 +37,7 @@
 </main>
 
 <footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400">
-    Chirak, MIT licensed. Training and evaluation run on an AMD Instinct MI300X.
+    Chirak, MIT licensed. Training and evaluation run on one AMD Instinct GPU (MI300X during the spike, MI350X for the demo run).
 </footer>
 </body>
 </html>
