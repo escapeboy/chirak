@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // A local TLS proxy (tailscale serve) sits in front of `artisan serve`; trust its X-Forwarded-* headers
+        // so generated URLs use https. Only loopback is trusted, so remote clients cannot spoof them.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
