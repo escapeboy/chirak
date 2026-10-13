@@ -280,7 +280,7 @@ class RunPipeline
         }
 
         $run->update(['current_worker_job_id' => $jobId, 'stage' => $stage, 'status' => Run::RUNNING, 'error' => null]);
-        PollWorkerJob::dispatch($run->id)->delay(now()->addSeconds(5));
+        PollWorkerJob::dispatch($run->id)->delay(now()->addSeconds(min(5, config('chirak.worker.poll_delay'))));
     }
 
     private function handleResult(Run $run, array $result): void
