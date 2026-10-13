@@ -1,4 +1,5 @@
 import hashlib
+import re
 import json
 
 from chirak_worker.evaluate import read_jsonl
@@ -304,3 +305,64 @@ def test_evaluate_fails_when_a_request_keeps_failing(client, settings, spec_dict
     job = wait_job(client, client.post("/evaluate", json=body).json()["job_id"])
     assert job["status"] == "failed" and "request failed" in job["error"]
     assert not (settings.runs_dir / "demo-1" / "evals" / "baseline" / "metrics.json").exists()
+
+
+def test_train_must_also_avoid_eval_hard_when_the_run_has_one(client, settings, spec_dict):
+    ev = _eval_for(settings, "demo-5")
+    (settings.runs_dir / "demo-5" / "eval-hard.jsonl").write_text((FIXTURES / "eval.jsonl").read_text())
+    body = {"run_id": "demo-5", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4, "avoid_near": [ev]}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "eval-hard" in r.json()["detail"]
+    body["avoid_near"] = [ev, str(settings.runs_dir / "demo-5" / "eval-hard.jsonl")]
+    assert wait_job(client, client.post("/generate", json=body).json()["job_id"])["status"] == "succeeded"
+
+
+class FakeJudge:
+    model = "fake-claude"
+
+    def __init__(self, agree_every=2):
+        self.usage = {"requests": 0}
+        self.calls = {}
+        self.agree_every = agree_every
+
+    def label(self, spec, text):
+        self.usage["requests"] += 1
+        pairs = dict(re.findall(r'(\w+)=("[^"]*"|true|false)', text))  # fake texts carry their target label
+        target = {k: json.loads(v) for k, v in pairs.items()}
+        n = int(re.search(r"zq(\d+)x", text).group(1))
+        return (target if n % self.agree_every == 0 else {**target, "urgent": not target["urgent"]}), "{}"
+
+
+def test_judge_rescues_some_label_check_rejects_up_to_the_cap(client, settings, spec_dict, llm, services):
+    judge = FakeJudge()
+    services.judge_factory = lambda: judge
+    orig = llm.chat
+
+    def chat(model, messages, temperature, max_tokens, **extra):  # the generator's blind label always disagrees
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0:
+            got = json.loads(text)
+            got["urgent"] = not got["urgent"]
+            text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    body = {"run_id": "demo-6", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 6,
+            "target_slices": [{"name": "returns", "n": 6}], "avoid_near": [_eval_for(settings, "demo-6")], "judge_cap": 10}
+    job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["judge"]["judged"] == 10 and res["judge"]["accepted"] >= 4 and res["judge"]["model"] == "fake-claude"
+    assert judge.usage["requests"] == 20  # two passes per judged item
+    rows = read_jsonl(settings.runs_dir / "demo-6" / "train-2.jsonl")
+    assert rows and all(r["label_check"] == "judge" for r in rows) and len(rows) == res["judge"]["kept"]
+    dropped = read_jsonl(settings.runs_dir / "demo-6" / "train-2.dropped.jsonl")
+    assert sum("judge" in d for d in dropped) == 10 - res["judge"]["accepted"]
+
+
+def test_judge_cap_without_an_api_key_is_rejected(client, settings, spec_dict, services, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    body = {"run_id": "demo-7", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4,
+            "avoid_near": [_eval_for(settings, "demo-7")], "judge_cap": 5}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "ANTHROPIC_API_KEY" in r.json()["detail"]

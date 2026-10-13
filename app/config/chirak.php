@@ -20,4 +20,7 @@ return [
         'min_gain' => 0.01,
         'max_leakage_drop_rate' => 0.30,
     ],
+
+    // Train generation for targeted slices: label-check rejects sent to the Claude judge per iteration.
+    'judge_cap' => (int) env('JUDGE_CAP', 400),
 ];

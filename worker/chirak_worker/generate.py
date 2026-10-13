@@ -76,7 +76,7 @@ def _detect_lang(text: str, languages: list[str]) -> str:
 
 
 def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embedder: Embedder,
-                 ctx: JobContext, avoid_files: list[str]) -> dict:
+                 ctx: JobContext, avoid_files: list[str], judge=None) -> dict:
     spec = req.task_spec
     rdir = settings.runs_dir / req.run_id
     rdir.mkdir(parents=True, exist_ok=True)
@@ -115,6 +115,10 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     accepted_emb = [embedder.encode([s["input"] for s in seeds])] if seeds else []
     dropped = dict.fromkeys(DROP_KEYS, 0)
     mismatched: list[dict] = []  # label-check rejects, kept with both labels
+    # Relaxed check for targeted train slices: a reject the Claude judge agrees with is kept
+    # (authority: judge > generator). Capped, since every judged item is an API call.
+    judge_left = req.judge_cap if (judge and not eval_like) else 0
+    judged = {"cap": judge_left, "judged": 0, "accepted": 0}
     n_candidates = 0
     total_target = sum(quota.values())
 
@@ -144,11 +148,25 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
             if r:
                 dropped[r] += 1
         blind = _blind_labels(spec, llm, settings, [candidates[i] for i in clean])
-        for i, got in zip(clean, blind):
-            if got != candidates[i]["output"]:
-                mismatched.append({**candidates[i], "blind": got, "round": rnd})
+        rejects = [i for i, got in zip(clean, blind) if got != candidates[i]["output"]]
+        verdicts = {}
+        if judge_left and rejects:
+            to_judge = rejects[:judge_left]
+            judge_left -= len(to_judge)
+            with ThreadPoolExecutor(8) as ex:
+                labels = list(ex.map(lambda i: _judge_label(judge, spec, candidates[i]["input"]), to_judge))
+            verdicts = dict(zip(to_judge, labels))
+            judged["judged"] += len(to_judge)
+        blind_of = dict(zip(clean, blind))
+        for i in rejects:
+            if i in verdicts and verdicts[i] == candidates[i]["output"]:
+                candidates[i]["judged"] = True
+                judged["accepted"] += 1
+            else:
+                mismatched.append({**candidates[i], "blind": blind_of[i], "round": rnd,
+                                   **({"judge": verdicts[i]} if i in verdicts else {})})
         dropped["label_mismatch"] = len(mismatched)
-        clean = [i for i, got in zip(clean, blind) if got == candidates[i]["output"]]
+        clean = [i for i in clean if blind_of[i] == candidates[i]["output"] or candidates[i].get("judged")]
         known = np.vstack(accepted_emb) if accepted_emb else None
         keep = dedup(emb[clean], known) if clean else []
         new_emb = []
@@ -175,7 +193,8 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
             for i, s in enumerate(seeds if is_eval else [], 1)]
     start = len(rows) + 1
     rows += [{"id": f"{prefix}-{i:04d}", "input": c["input"], "output": c["output"], "slice": c["slice"],
-              "lang": c["lang"], "source": "synthetic"} for i, c in enumerate(final, start)]
+              "lang": c["lang"], "source": "synthetic", **({"label_check": "judge"} if c.get("judged") else {})}
+             for i, c in enumerate(final, start)]
     _atomic_write(out_path, "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     digest = file_sha256(out_path)
     if is_eval:
@@ -183,7 +202,8 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     dropped_path = rdir / f"{prefix}.dropped.jsonl"
     _atomic_write(dropped_path, "".join(json.dumps(
         {"id": f"{prefix}-drop-{i:04d}", "input": m["input"], "proposed": m["output"], "blind": m["blind"],
-         "slice": m["slice"], "lang": m["lang"], "round": m["round"], "reason": "label_mismatch"},
+         "slice": m["slice"], "lang": m["lang"], "round": m["round"], "reason": "label_mismatch",
+         **({"judge": m["judge"]} if "judge" in m else {})},
         ensure_ascii=False) + "\n" for i, m in enumerate(mismatched, 1)))
 
     by_slice: dict[str, int] = {}
@@ -197,6 +217,8 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         "frozen": is_eval,
         "guidance_rejected": guidance_rejected,
         "dropped_path": str(dropped_path),
+        **({"judge": {**judged, "kept": sum(1 for c in final if c.get("judged")), "model": judge.model,
+                      "usage": judge.usage}} if judged["cap"] else {}),
     }
 
 
@@ -214,6 +236,15 @@ def _blind_labels(spec: TaskSpec, llm: LlmBackend, settings: Settings, candidate
 
     with ThreadPoolExecutor(settings.gen_concurrency) as ex:
         return list(ex.map(one, candidates))
+
+
+def _judge_label(judge, spec: TaskSpec, text: str) -> dict | None:
+    """Two passes, as for eval-hard: the judge model takes no temperature, so an unstable answer is no answer."""
+    try:
+        a, b = judge.label(spec, text)[0], judge.label(spec, text)[0]
+    except Exception:
+        return None
+    return a if a == b else None
 
 
 def _generate_round(req, spec, llm, settings, targets, seeds, ctx, accepted_n, total) -> list[dict]:

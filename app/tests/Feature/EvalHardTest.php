@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Dataset;
 use App\Models\Run;
+use Tests\Support\FakeWorker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\RunsPipeline;
 use Tests\TestCase;
@@ -75,5 +77,49 @@ class EvalHardTest extends TestCase
 
         $this->artisan('chirak:import-eval-hard', ['slug' => $run->slug, '--dir' => $this->dir])->assertFailed();
         $this->assertSame(0, $run->hardEvaluations()->count());
+    }
+
+    public function test_a_retargeted_run_iterates_against_eval_hard_and_keeps_the_clean_slice_decision(): void
+    {
+        $this->worker->iterations = [1 => 0.95, 2 => 0.96, 3 => 0.97];
+        $this->worker->hard = ['base' => 0.70, 1 => 0.75, 2 => 0.90, 3 => 0.91];
+        $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
+        $this->assertSame([Run::COMPLETED, 1], [$run->status, $run->best_iteration]);
+        $cleanDecision = $run->decisions()->sole()->toArray();
+        Dataset::create(['run_id' => $run->id, 'purpose' => 'eval-hard', 'remote_path' => "/data/runs/{$run->slug}/eval-hard.jsonl",
+            'local_path' => "{$run->slug}/eval-hard.jsonl", 'n' => 119, 'sha256' => FakeWorker::SHA, 'frozen_at' => now()]);
+
+        $this->artisan('chirak:retarget-hard', ['slug' => $run->slug])->assertSuccessful();
+        $this->drainQueue();
+        $run->refresh();
+
+        $this->assertSame(Run::COMPLETED, $run->status);
+        $this->assertSame(2, $run->best_iteration);
+        $this->assertSame('target met (0.900 >= 0.850)', $run->stop_reason);
+        $hard = $run->hardEvaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
+        $this->assertSame([0.70, 0.75, 0.90], [$hard['base']->metrics['macro_f1'], $hard[1]->metrics['macro_f1'], $hard[2]->metrics['macro_f1']]);
+        $this->assertSame(0.96, $run->evaluations()->where('iteration', 2)->value('metrics')['macro_f1']);
+
+        $this->assertEquals($cleanDecision, $run->decisions()->where('slice', 'clean')->sole()->toArray());
+        $decisions = $run->decisions()->where('slice', 'hard')->get();
+        $this->assertSame([1, 2], $decisions->pluck('iteration')->all());
+        $this->assertFalse($decisions[0]->stop_rule['stop']);
+        $this->assertSame('claude', $decisions[0]->orchestrator_output['used']);
+
+        $gen = collect($this->worker->sent('POST', '/generate'))->last()['body'];
+        $this->assertSame(2, $gen['iteration']);
+        $this->assertSame(["/data/runs/{$run->slug}/eval.jsonl", "/data/runs/{$run->slug}/eval-hard.jsonl"], $gen['avoid_near']);
+        $this->assertSame(400, $gen['judge_cap']);
+        $this->assertSame(['returns', 'complaints'], array_column($gen['target_slices'], 'name'));
+        $labels = array_column(array_column($this->worker->sent('POST', '/evaluate'), 'body'), 'label');
+        $this->assertSame(['base', 'iter-1', 'base.eval-hard', 'iter-1.eval-hard', 'iter-2', 'iter-2.eval-hard'], $labels);
+    }
+
+    public function test_retarget_needs_eval_hard(): void
+    {
+        $this->worker->iterations = [1 => 0.95];
+        $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
+        $this->artisan('chirak:retarget-hard', ['slug' => $run->slug])->assertFailed();
+        $this->assertSame(Run::COMPLETED, $run->refresh()->status);
     }
 }

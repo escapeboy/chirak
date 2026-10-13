@@ -64,7 +64,14 @@ class RunPipeline
             return ['step' => 'evaluate_base', 'iteration' => null];
         }
 
-        if ($run->metricOf($baseline->metrics) >= $run->target_value) {
+        // With an eval-hard set the target, the analysis and the stop rules use the hard slice;
+        // every model is still scored on both.
+        $slice = $this->targetSlice($run);
+        if ($slice === 'hard' && ! $this->evaluation($run, null, 'hard')) {
+            return ['step' => 'evaluate_hard', 'iteration' => null];
+        }
+
+        if ($run->metricOf($this->evaluation($run, null, $slice)->metrics) >= $run->target_value) {
             return ['step' => 'not_worth_it', 'iteration' => null];
         }
 
@@ -90,7 +97,11 @@ class RunPipeline
                 return ['step' => 'evaluate', 'iteration' => $i];
             }
 
-            $decision = $run->decisions()->where('iteration', $i)->first();
+            if ($slice === 'hard' && ! $this->evaluation($run, $i, 'hard')) {
+                return ['step' => 'evaluate_hard', 'iteration' => $i];
+            }
+
+            $decision = $this->decision($run, $i, $slice);
             if (! $decision) {
                 return ['step' => 'decide', 'iteration' => $i];
             }
@@ -244,14 +255,19 @@ class RunPipeline
                 $stage = 'evaluate_base';
                 break;
             case 'generate_train':
-                $slices = $i > 1 ? ($run->decisions()->where('iteration', $i - 1)->first()?->next_slices ?: null) : null;
+                $hardPath = $this->dataset($run, 'eval-hard')?->remote_path;
+                $slices = $i > 1 ? ($this->decision($run, $i - 1, $this->targetSlice($run))?->next_slices ?: null) : null;
                 $payload = [
                     'run_id' => $run->slug, 'purpose' => 'train', 'iteration' => $i, 'task_spec' => $spec,
                     'seed_examples' => [], 'n' => $slices ? (int) collect($slices)->sum('n') : $run->train_n,
-                    'avoid_near' => [$evalPath],
+                    'avoid_near' => array_values(array_filter([$evalPath, $hardPath])),
                 ];
                 if ($slices) {
                     $payload['target_slices'] = $slices;
+                }
+                if ($slices && $hardPath) {
+                    // Targeted slices aim at the ambiguous cases the label check rejects; the judge may keep some.
+                    $payload['judge_cap'] = config('chirak.judge_cap');
                 }
                 $jobId = $this->worker->generate($payload);
                 $stage = "generate_train:$i";
@@ -277,6 +293,15 @@ class RunPipeline
                 ]);
                 $stage = "evaluate:$i";
                 break;
+            case 'evaluate_hard':
+                $label = $i === null ? 'base' : "iter-$i";
+                $jobId = $this->worker->evaluate([
+                    'run_id' => $run->slug, 'eval_file' => $this->dataset($run, 'eval-hard')->remote_path,
+                    'task_spec' => $spec, 'label' => "$label.eval-hard",
+                    'model' => $i === null ? 'base' : $run->iterations()->where('n', $i)->value('adapter_path'),
+                ]);
+                $stage = 'evaluate_hard:'.($i ?? 'base');
+                break;
         }
 
         $run->update(['current_worker_job_id' => $jobId, 'stage' => $stage, 'status' => Run::RUNNING, 'error' => null]);
@@ -286,7 +311,7 @@ class RunPipeline
     private function handleResult(Run $run, array $result): void
     {
         [$step, $i] = array_pad(explode(':', $run->stage), 2, null);
-        $i = $i === null ? null : (int) $i;
+        $i = $i === null || $i === 'base' ? null : (int) $i;
 
         switch ($step) {
             case 'generate_eval':
@@ -296,6 +321,9 @@ class RunPipeline
             case 'evaluate_base':
             case 'evaluate':
                 $this->storeEvaluation($run, $i, $result);
+                break;
+            case 'evaluate_hard':
+                $this->storeEvaluation($run, $i, $result, 'hard');
                 break;
             case 'train':
                 $this->storeTraining($run, $i, $result);
@@ -328,9 +356,9 @@ class RunPipeline
         );
     }
 
-    private function storeEvaluation(Run $run, ?int $iteration, array $metrics): void
+    private function storeEvaluation(Run $run, ?int $iteration, array $metrics, string $slice = 'clean'): void
     {
-        $evalSet = $this->dataset($run, 'eval');
+        $evalSet = $this->dataset($run, $slice === 'hard' ? 'eval-hard' : 'eval');
         $evalSha = $evalSet->sha256;
         if (($metrics['eval_sha256'] ?? null) !== $evalSha) {
             throw new WorkerRejected(409, 'eval set hash changed: stored '.$evalSha.', evaluation used '.($metrics['eval_sha256'] ?? 'none'));
@@ -340,7 +368,7 @@ class RunPipeline
         unset($metrics['failures']);
 
         Evaluation::updateOrCreate(
-            ['run_id' => $run->id, 'slice' => 'clean', 'iteration' => $iteration],
+            ['run_id' => $run->id, 'slice' => $slice, 'iteration' => $iteration],
             [
                 'dataset_id' => $evalSet->id,
                 'adapter_path' => $iteration === null ? null : $run->iterations()->where('n', $iteration)->value('adapter_path'),
@@ -350,7 +378,7 @@ class RunPipeline
             ],
         );
 
-        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration").'/metrics.json', json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration").($slice === 'hard' ? '.eval-hard' : '').'/metrics.json', json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 
     private function storeTraining(Run $run, int $i, array $result): void
@@ -380,8 +408,9 @@ class RunPipeline
 
     private function decide(Run $run, int $i): void
     {
-        $latest = $this->evaluation($run, $i);
-        $previous = $i > 1 ? $this->evaluation($run, $i - 1) : null;
+        $slice = $this->targetSlice($run);
+        $latest = $this->evaluation($run, $i, $slice);
+        $previous = $i > 1 ? $this->evaluation($run, $i - 1, $slice) : null;
         $train = $this->dataset($run, 'train', $i);
 
         $verdict = StopRules::evaluate(
@@ -390,13 +419,13 @@ class RunPipeline
             (float) $run->metricOf($latest->metrics),
             $previous ? $run->metricOf($previous->metrics) : null,
             $train->leakageDropRate(),
-        );
+        ) + ['slice' => $slice];
 
         $data = ['stop_rule' => $verdict, 'orchestrator_input' => null, 'orchestrator_output' => null, 'next_slices' => null, 'model' => null];
 
         if (! $verdict['stop']) {
             $run->update(['stage' => "analyze:$i"]);
-            $earlier = $run->decisions()->where('iteration', '<', $i)->get()->map(fn ($d) => [
+            $earlier = $run->decisions()->where('slice', $slice)->where('iteration', '<', $i)->get()->map(fn ($d) => [
                 'iteration' => $d->iteration,
                 'reason' => $d->orchestrator_output['reason'] ?? '',
                 'next_slices' => $d->next_slices,
@@ -411,7 +440,7 @@ class RunPipeline
             ]);
         }
 
-        Decision::updateOrCreate(['run_id' => $run->id, 'iteration' => $i], $data);
+        Decision::updateOrCreate(['run_id' => $run->id, 'slice' => $slice, 'iteration' => $i], $data);
     }
 
     private function stopOnLeakage(Run $run, int $i): void
@@ -429,7 +458,8 @@ class RunPipeline
 
     private function finalize(Run $run, ?string $stopReason = null): void
     {
-        $best = $run->evaluations()->whereNotNull('iteration')->get()
+        $slice = $this->targetSlice($run);
+        $best = ($slice === 'hard' ? $run->hardEvaluations() : $run->evaluations())->whereNotNull('iteration')->get()
             ->sortBy([fn ($a, $b) => $run->metricOf($b->metrics) <=> $run->metricOf($a->metrics), fn ($a, $b) => $a->iteration <=> $b->iteration])
             ->first();
 
@@ -444,7 +474,7 @@ class RunPipeline
             'stage' => 'done',
             'served_name' => $name,
             'best_iteration' => $best?->iteration,
-            'stop_reason' => $stopReason ?? $run->decisions()->reorder('iteration', 'desc')->first()?->stop_rule['reason'],
+            'stop_reason' => $stopReason ?? $run->decisions()->where('slice', $slice)->reorder('iteration', 'desc')->first()?->stop_rule['reason'],
         ]);
     }
 
@@ -453,8 +483,19 @@ class RunPipeline
         return $run->datasets()->where('purpose', $purpose)->where('iteration', $iteration)->first();
     }
 
-    private function evaluation(Run $run, ?int $iteration): ?Evaluation
+    private function evaluation(Run $run, ?int $iteration, string $slice = 'clean'): ?Evaluation
     {
-        return $run->evaluations()->where('iteration', $iteration)->first();
+        return ($slice === 'hard' ? $run->hardEvaluations() : $run->evaluations())->where('iteration', $iteration)->first();
+    }
+
+    private function decision(Run $run, int $iteration, string $slice): ?Decision
+    {
+        return $run->decisions()->where('slice', $slice)->where('iteration', $iteration)->first();
+    }
+
+    /** "hard" once the run has an eval-hard set: then it measures the target. */
+    public function targetSlice(Run $run): string
+    {
+        return $this->dataset($run, 'eval-hard') ? 'hard' : 'clean';
     }
 }

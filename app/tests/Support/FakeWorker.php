@@ -26,6 +26,9 @@ class FakeWorker
     /** macro_f1 of iteration 1, 2, 3 */
     public array $iterations = [1 => 0.60, 2 => 0.70, 3 => 0.80];
 
+    /** macro_f1 on eval-hard: 'base', 1, 2, 3 */
+    public array $hard = ['base' => 0.40, 1 => 0.50, 2 => 0.60, 3 => 0.70];
+
     /** leakage_drop_rate of train iteration 1, 2, 3 */
     public array $leakage = [1 => 0.10, 2 => 0.10, 3 => 0.10];
 
@@ -135,7 +138,10 @@ class FakeWorker
     private function evaluated(array $b): array
     {
         $run = Run::where('slug', $b['run_id'])->firstOrFail();
-        $f1 = $b['label'] === 'base' ? $this->baseline : $this->iterations[(int) substr($b['label'], 5)];
+        $hard = str_ends_with($b['label'], '.eval-hard');
+        $label = $hard ? substr($b['label'], 0, -strlen('.eval-hard')) : $b['label'];
+        $i = $label === 'base' ? 'base' : (int) substr($label, 5);
+        $f1 = $hard ? $this->hard[$i] : ($i === 'base' ? $this->baseline : $this->iterations[$i]);
         $labels = $run->primaryField()['values'];
 
         $perClass = [];

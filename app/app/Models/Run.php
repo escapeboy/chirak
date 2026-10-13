@@ -62,7 +62,7 @@ class Run extends Model
 
     public function decisions(): HasMany
     {
-        return $this->hasMany(Decision::class)->orderBy('iteration');
+        return $this->hasMany(Decision::class)->orderBy('iteration')->orderBy('id');
     }
 
     public function isTerminal(): bool

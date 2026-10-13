@@ -31,7 +31,8 @@ TXT;
     {
         $input = [
             'model' => config('chirak.orchestrator.model'),
-            'max_tokens' => 2000,
+            // The model thinks adaptively; 2000 left too little room for the answer with the eval-hard judge.
+            'max_tokens' => 8000,
             'system' => self::SYSTEM,
             'messages' => [['role' => 'user', 'content' => $this->userPrompt($run, $latest, $previousDecisions)]],
         ];

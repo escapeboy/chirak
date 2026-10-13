@@ -62,6 +62,8 @@ class GenerateRequest(BaseModel):
     n: int = Field(gt=0, le=20000)
     target_slices: list[TargetSlice] | None = None
     avoid_near: list[str] = Field(default_factory=list)
+    # Train only: up to this many label-check rejects go to the Claude judge; one it agrees with is kept.
+    judge_cap: int = Field(default=0, ge=0, le=2000)
 
 
 class LoraConfig(BaseModel):

@@ -30,6 +30,7 @@ class Services:
     runner: JobRunner
     gpu_info: Callable[[], dict] = gpu_info
     train: Callable = run_train
+    judge_factory: Callable | None = None  # builds the Claude judge for train generation with judge_cap
 
 
 def default_services(settings: Settings) -> Services:
@@ -40,6 +41,14 @@ def default_services(settings: Settings) -> Services:
         embedder=SentenceTransformerEmbedder(settings.embedding_model),
         runner=JobRunner(JobStore(settings.jobs_dir)),
     )
+
+
+def default_judge():
+    import os
+
+    from .judge import ClaudeJudge
+
+    return ClaudeJudge() if os.environ.get("ANTHROPIC_API_KEY") else None
 
 
 def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
@@ -97,9 +106,18 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         if req.purpose == "train" and str(resolve_under_runs(settings, str(rdir / "eval.jsonl"))) not in avoid:
             # without the run's own eval file the leakage guard would silently check nothing
             raise HTTPException(400, "train generation requires this run's eval.jsonl in avoid_near")
+        hard = rdir / "eval-hard.jsonl"
+        if req.purpose == "train" and hard.exists() and str(resolve_under_runs(settings, str(hard))) not in avoid:
+            raise HTTPException(400, "this run has eval-hard.jsonl; train generation must avoid it too")
+        judge = None
+        if req.judge_cap and req.purpose == "train":
+            factory = svc.judge_factory or default_judge
+            judge = factory()
+            if judge is None:
+                raise HTTPException(400, "judge_cap needs ANTHROPIC_API_KEY on the worker")
         job_id = svc.runner.submit(
             "generate", req.run_id,
-            lambda ctx: run_generate(req, settings, svc.llm, svc.embedder, ctx, avoid))
+            lambda ctx: run_generate(req, settings, svc.llm, svc.embedder, ctx, avoid, judge))
         return {"job_id": job_id}
 
     @app.post("/train", status_code=202, dependencies=[Depends(auth)])
