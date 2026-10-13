@@ -21,3 +21,31 @@ Hardware: 1× AMD MI350X (gfx950) on RunPod, because MI300X was out of stock (se
   recommendation, not typed by the owner.
 - Independent checks (a script outside the worker): 0 train items share an 8-gram with eval or with
   the hold-out tickets; 0 exact duplicates; the 5 hold-out tickets appear in no dataset file.
+
+## Run 4 result
+
+Stopped after iteration 1 by the rule "target met (0.991 >= 0.920)". Training: 1000 examples,
+2 epochs, 130 s, peak 12.2 GB VRAM.
+
+| Model | macro-F1 | accuracy | urgency acc | needs_human acc | exact match | JSON valid |
+|---|---|---|---|---|---|---|
+| Qwen3.5-4B base | 0.8406 | 0.8465 | 0.8744 | 0.7674 | 0.5953 | 100% |
+| + LoRA iter-1 | 0.9907 | 0.9907 | 0.9581 | 0.9535 | 0.9070 | 100% |
+
+Reproduction with `make eval` (same eval sha256 `6ecec925…3c9160`):
+- adapter: 0.9907 macro-F1 in 3 of 3 re-runs;
+- base: 0.8406 (pipeline), then 0.8459, 0.8415, 0.8362 in re-runs. Decoding is greedy, but
+  vLLM batches concurrent requests differently each run and a few near-tie answers flip
+  (about 1 item of 215). Treat the baseline as 0.84 ± 0.005.
+
+What the 0.99 means: train and eval labels both passed the same blind label check by the 27B
+generator, so the student is measured on cases where the generator's reading of the guidelines
+is unambiguous. Two checks that did not pass through that filter:
+
+| Subset | base category | adapter category | base exact | adapter exact |
+|---|---|---|---|---|
+| 15 seed tickets in eval (written by Claude, not filtered) | 13/15 | 15/15 | 7/15 | 11/15 |
+| 5 hold-out tickets (in no dataset file), via `/predict` | 4/5 | 5/5 | 2/5 | 4/5 |
+
+Small samples, same direction. The per-item predictions are in
+`evals/{base,iter-1}/predictions.jsonl` of the run (copied to `../chirak-artifacts/mi350-2026-10-13-demo/`).
