@@ -65,7 +65,7 @@ A dataset item (one JSONL line):
 ```json
 {"id": "eval-0007", "input": "Здравейте, поръчка 1234 още не е пристигнала...",
  "output": {"category": "shipping", "urgency": "normal", "needs_human": false},
- "slice": "shipping", "lang": "bg", "source": "synthetic | human"}
+ "slice": "shipping", "lang": "bg", "source": "synthetic | seed"}
 ```
 
 ## POST /generate
@@ -85,7 +85,7 @@ A dataset item (one JSONL line):
 
 - `purpose = eval`: lower temperature (0.7), a prompt asking for realistic, messy, edge-case
   tickets; the `seed_examples` are few-shot style references **and** are written verbatim into
-  the eval file (`source: "human"`). The output is `/data/runs/<run_id>/eval.jsonl` plus
+  the eval file (`source: "seed"`). The output is `/data/runs/<run_id>/eval.jsonl` plus
   `eval.sha256`. If `eval.jsonl` already exists for the run → `409` (eval is frozen; a change
   means a new run). `n` counts synthetic items; seeds come on top.
 - `purpose = train`: higher temperature (1.0), a different prompt template, **no seed examples

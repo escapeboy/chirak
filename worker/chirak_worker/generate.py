@@ -156,7 +156,7 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     prefix = "eval" if is_eval else f"train-{req.iteration}"
     primary = spec.primary.name
     rows = [{"id": f"eval-{i:04d}", "input": s["input"], "output": s["output"], "slice": s["output"][primary],
-             "lang": _detect_lang(s["input"], spec.languages), "source": "human"} for i, s in enumerate(seeds, 1)]
+             "lang": _detect_lang(s["input"], spec.languages), "source": "seed"} for i, s in enumerate(seeds, 1)]
     start = len(rows) + 1
     rows += [{"id": f"{prefix}-{i:04d}", "input": c["input"], "output": c["output"], "slice": c["slice"],
               "lang": c["lang"], "source": "synthetic"} for i, c in enumerate(final, start)]

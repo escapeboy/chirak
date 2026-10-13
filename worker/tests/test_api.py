@@ -23,7 +23,7 @@ def test_generate_eval_writes_frozen_file_with_seeds(client, settings, spec_dict
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     assert res["sha256"] == digest and (path.parent / "eval.sha256").read_text().strip() == digest
     rows = read_jsonl(path)
-    assert len(rows) == 10 and rows[0]["source"] == "human" and rows[0]["input"] == seeds[0]["input"]
+    assert len(rows) == 10 and rows[0]["source"] == "seed" and rows[0]["input"] == seeds[0]["input"]
     assert {r["source"] for r in rows[1:]} == {"synthetic"} and {r["lang"] for r in rows[1:]} == {"bg", "en"}
     assert all(set(r) == {"id", "input", "output", "slice", "lang", "source"} for r in rows)
     mode, temp, msgs = llm.prompts[0]
