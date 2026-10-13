@@ -48,5 +48,8 @@ is unambiguous. Two checks that did not pass through that filter:
 | 15 seed tickets in eval (written by Claude, not filtered) | 13/15 | 15/15 | 7/15 | 11/15 |
 | 5 hold-out tickets (in no dataset file), via `/predict` | 4/5 | 5/5 | 2/5 | 4/5 |
 
-Small samples, same direction. The per-item predictions are in
+Small samples, same direction. Re-checked on a fresh pod (`zls6se55saw8dd`, 14:30 UTC) after
+restoring the run's artifacts: `make eval` gave the adapter 0.9907 again, and the hold-out tickets
+gave base 4/5 / 2/5 and adapter 5/5 / 5/5 (one ticket's urgency differs from the first check).
+The numbers above keep the first, lower result. The per-item predictions are in
 `evals/{base,iter-1}/predictions.jsonl` of the run (copied to `../chirak-artifacts/mi350-2026-10-13-demo/`).

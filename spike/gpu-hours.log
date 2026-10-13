@@ -6,3 +6,4 @@
 2026-10-13T10:39:37Z terminate kjek315yyuob1d (smoke + spike 4-5 + e2e run done; ~0.85 h x $5.49 = ~$4.7; artifacts copied to ../chirak-artifacts/mi350-2026-10-13)
 2026-10-13T10:43:12Z start 950649ukf7z5il (MI350X, US, $5.49/h) for the demo run
 2026-10-13T12:15:06Z terminate 950649ukf7z5il (runs 2-4, demo run complete; ~1.85 h x $5.49 = ~$10.2; artifacts in ../chirak-artifacts/mi350-2026-10-13-demo)
+2026-10-13T14:29:44Z start zls6se55saw8dd (MI350X, US, $5.49/h) for CHECKPOINT 2 re-run + demo prep
