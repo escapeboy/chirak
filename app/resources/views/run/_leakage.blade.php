@@ -4,7 +4,7 @@
     <h2 class="card-title">Leakage guard and frozen eval set</h2>
     @if ($eval)
         <dl class="mb-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">{{ $eval->n }}</dd></div>
+            <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">{{ $eval->rows() }} ({{ $eval->syntheticRows() }} synthetic + {{ $eval->rows() - $eval->syntheticRows() }} seed)</dd></div>
             <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">{{ $eval->frozen_at?->format('Y-m-d H:i:s') ?? '—' }} UTC</dd></div>
             @isset($eval->stats['dropped']['label_mismatch'])
                 <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">{{ $eval->stats['dropped']['label_mismatch'] }} of {{ $eval->stats['n_candidates'] ?? '?' }} eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>

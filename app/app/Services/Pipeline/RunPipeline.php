@@ -308,17 +308,19 @@ class RunPipeline
         $name = $purpose === 'eval' ? 'eval.jsonl' : "train-$iteration.jsonl";
         $this->worker->downloadArtifact($run->slug, $this->relative($run, $result['path']), "{$run->slug}/$name");
 
-        $localSha = hash('sha256', (string) Storage::disk('runs')->get("{$run->slug}/$name"));
-        if ($localSha !== $result['sha256']) {
+        $body = (string) Storage::disk('runs')->get("{$run->slug}/$name");
+        if (hash('sha256', $body) !== $result['sha256']) {
             throw new WorkerRejected(409, "downloaded $name does not match the worker's sha256");
         }
+        // The worker's `n` counts synthetic items only; the eval file also holds the seed tickets.
+        $result['n_rows'] = substr_count($body, "\n");
 
         Dataset::updateOrCreate(
             ['run_id' => $run->id, 'purpose' => $purpose, 'iteration' => $iteration],
             [
                 'remote_path' => $result['path'],
                 'local_path' => "{$run->slug}/$name",
-                'n' => $result['n'],
+                'n' => $result['n_rows'],
                 'sha256' => $result['sha256'],
                 'frozen_at' => ($result['frozen'] ?? false) ? now() : null,
                 'stats' => $result,
