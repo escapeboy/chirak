@@ -82,6 +82,9 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     out_path = rdir / ("eval.jsonl" if is_eval else f"train-{req.iteration}.jsonl")
     if is_eval and out_path.exists():
         raise RuntimeError("eval.jsonl already exists; the eval set is frozen")
+    if is_eval:
+        # `make eval` re-scores an adapter with the run's own spec, read from here.
+        _atomic_write(rdir / "task_spec.json", spec.model_dump_json(indent=2))
 
     seeds = [s.model_dump() for s in req.seed_examples] if is_eval else []
     rng = random.Random(f"{req.run_id}/{req.purpose}/{req.iteration}")
