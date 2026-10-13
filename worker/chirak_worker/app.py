@@ -1,5 +1,6 @@
 """FastAPI app implementing docs/worker-api.md. Heavy backends are injected so tests can fake them."""
 import hmac
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Callable
 
@@ -43,7 +44,13 @@ def default_services(settings: Settings) -> Services:
 
 def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
     svc = services or default_services(settings)
-    app = FastAPI(title="Chirak worker", version=__version__)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        yield
+        svc.llm.stop()  # do not leave an orphaned vLLM holding the GPU
+
+    app = FastAPI(title="Chirak worker", version=__version__, lifespan=lifespan)
 
     def token_ok(request: Request) -> bool:
         header = request.headers.get("authorization", "")
