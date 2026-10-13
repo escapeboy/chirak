@@ -50,6 +50,6 @@ is unambiguous. Two checks that did not pass through that filter:
 
 Small samples, same direction. Re-checked on a fresh pod (`zls6se55saw8dd`, 14:30 UTC) after
 restoring the run's artifacts: `make eval` gave the adapter 0.9907 again, and the hold-out tickets
-gave base 4/5 / 2/5 and adapter 5/5 / 5/5 (one ticket's urgency differs from the first check).
+gave base 4/5 / 2/5 and adapter 5/5 / 5/5 (the answer for one ticket differs from the first check).
 The numbers above keep the first, lower result. The per-item predictions are in
 `evals/{base,iter-1}/predictions.jsonl` of the run (copied to `../chirak-artifacts/mi350-2026-10-13-demo/`).
