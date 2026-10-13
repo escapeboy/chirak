@@ -3,10 +3,11 @@
 Stdlib only. Usage: lora_diff.py <base model id> <adapter name>
 """
 import json
+import os
 import sys
 import urllib.request
 
-URL = "http://127.0.0.1:8000/v1/chat/completions"
+URL = f"http://127.0.0.1:{os.environ.get('VLLM_PORT', '8000')}/v1/chat/completions"
 base, adapter = sys.argv[1], sys.argv[2]
 SYSTEM = 'Classify the news headline. Answer only with JSON: {"topic": one of ["world", "sports", "business", "science_tech"]}.'
 HEADLINES = [

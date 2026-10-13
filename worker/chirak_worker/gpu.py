@@ -28,7 +28,9 @@ def gpu_info() -> dict:
         name = None
         try:
             card = next(iter(_rocm_smi("--showproductname").values()))
-            name = next((v for k, v in card.items() if "series" in k.lower() or "sku" in k.lower()), None)
+            # RunPod's MI350X reports "N/A" for series and SKU; the gfx arch is the useful fallback.
+            name = next((v for k, v in card.items() if ("series" in k.lower() or "sku" in k.lower()) and v != "N/A"),
+                        card.get("GFX Version"))
         except Exception:
             pass
         gb = lambda b: round(b / 1e9, 1) if b is not None else None  # noqa: E731
