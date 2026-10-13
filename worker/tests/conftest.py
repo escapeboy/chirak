@@ -12,6 +12,8 @@ from chirak_worker.app import Services, create_app
 from chirak_worker.config import Settings
 from chirak_worker.jobs import JobRunner, JobStore
 
+import os
+
 FIXTURES = Path(__file__).parent / "fixtures"
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
@@ -125,3 +127,12 @@ def wait_job(client, job_id, timeout=15):
             return job
         time.sleep(0.02)
     raise TimeoutError(job_id)
+
+
+def pytest_collection_modifyitems(config, items):
+    if os.environ.get("RUN_GPU_SMOKE") == "1":
+        return
+    skip = pytest.mark.skip(reason="GPU smoke test: set RUN_GPU_SMOKE=1 with a running worker")
+    for item in items:
+        if "gpu" in item.keywords:
+            item.add_marker(skip)
