@@ -19,7 +19,7 @@ def test_generate_eval_writes_frozen_file_with_seeds(client, settings, spec_dict
     path = settings.runs_dir / "demo-1" / "eval.jsonl"
     assert res["path"] == str(path) and res["frozen"] is True and res["leakage_drop_rate"] == 0
     assert res["n"] == 9 and set(res["by_slice"]) == {"orders", "returns", "payments"}
-    assert set(res["dropped"]) == {"duplicate", "leakage_cosine", "leakage_ngram"}
+    assert set(res["dropped"]) == {"duplicate", "leakage_cosine", "leakage_ngram", "label_mismatch"}
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     assert res["sha256"] == digest and (path.parent / "eval.sha256").read_text().strip() == digest
     rows = read_jsonl(path)
@@ -66,8 +66,32 @@ def test_generate_train_uses_leakage_guard_and_hotter_temperature(client, settin
         (res["dropped"]["leakage_cosine"] + res["dropped"]["leakage_ngram"]) / res["n_candidates"], 4)
     rows = read_jsonl(settings.runs_dir / "demo-1" / "train-2.jsonl")
     assert not any("поръчка 4412 още не е пристигнала" in r["input"] for r in rows)
-    assert all(t == 1.0 for _, t, _ in llm.prompts)
+    gen_temps = {t for _, t, m in llm.prompts if "language=" in m[-1]["content"]}
+    relabel_temps = {t for _, t, m in llm.prompts if "language=" not in m[-1]["content"]}
+    assert gen_temps == {1.0} and relabel_temps == {0.0}
     assert "SEED-MUST-NOT-APPEAR" not in json.dumps(llm.prompts) and "4412" not in json.dumps(llm.prompts)
+
+
+def test_generated_items_whose_blind_label_disagrees_are_dropped(client, settings, spec_dict, llm):
+    orig = llm.chat
+    flipped = {"n": 0}
+
+    def chat(model, messages, temperature, max_tokens, **extra):
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0 and flipped["n"] < 2:  # the blind re-label disagrees on two candidates
+            flipped["n"] += 1
+            got = json.loads(text)
+            got["urgent"] = not got["urgent"]
+            text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["dropped"]["label_mismatch"] == 2 and res["n"] == 9
+    relabels = [m for _, t, m in llm.prompts if t == 0.0]
+    assert relabels and all("label:" not in m[-1]["content"] for m in relabels)  # the target is never shown
 
 
 def _eval_for(settings, run_id):

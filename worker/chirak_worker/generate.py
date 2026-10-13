@@ -13,15 +13,15 @@ from .config import Settings
 from .embedding import Embedder
 from .jobs import JobContext
 from .leakage import LeakageGuard, dedup, file_sha256, ngram_set, read_avoid_texts
-from .parsing import parse_generated_items
-from .prompts import build_eval_generation_prompt, build_train_generation_prompt
+from .parsing import parse_generated_items, parse_student_answer
+from .prompts import build_eval_generation_prompt, build_train_generation_prompt, student_messages
 from .schemas import GenerateRequest, TaskSpec
 from .vllm import LlmBackend
 
 BATCH = 5
 MAX_ROUNDS = 4
 OVERSAMPLE = 1.25
-DROP_KEYS = ("duplicate", "leakage_cosine", "leakage_ngram")
+DROP_KEYS = ("duplicate", "leakage_cosine", "leakage_ngram", "label_mismatch")
 GUIDANCE_NGRAM = 5
 
 
@@ -133,6 +133,9 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         for r in leaks:
             if r:
                 dropped[r] += 1
+        agree = _labels_agree(spec, llm, settings, [candidates[i] for i in clean])
+        dropped["label_mismatch"] += agree.count(False)
+        clean = [i for i, ok in zip(clean, agree) if ok]
         known = np.vstack(accepted_emb) if accepted_emb else None
         keep = dedup(emb[clean], known) if clean else []
         new_emb = []
@@ -176,6 +179,22 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         "frozen": is_eval,
         "guidance_rejected": guidance_rejected,
     }
+
+
+def _labels_agree(spec: TaskSpec, llm: LlmBackend, settings: Settings, candidates: list[dict]) -> list[bool]:
+    """Blind re-label: the generator gets the student's exact instructions (no target label) at temperature 0.
+    A candidate is kept only if that answer equals its target output; label-conditioned text can contradict
+    its randomly drawn urgency/flags, and such items would put label noise into eval and train."""
+    def one(c: dict) -> bool:
+        try:
+            raw, _ = llm.chat("base", student_messages(spec, c["input"]), temperature=0.0, max_tokens=100)
+        except Exception:
+            return False
+        got, _ = parse_student_answer(raw, spec)
+        return got == c["output"]
+
+    with ThreadPoolExecutor(settings.gen_concurrency) as ex:
+        return list(ex.map(one, candidates))
 
 
 def _generate_round(req, spec, llm, settings, targets, seeds, ctx, accepted_n, total) -> list[dict]:

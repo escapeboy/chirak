@@ -109,7 +109,7 @@ Result:
   "n": 1000,
   "n_candidates": 1180,
   "by_slice": {"orders": 143, "...": 0},
-  "dropped": {"duplicate": 40, "leakage_cosine": 120, "leakage_ngram": 20},
+  "dropped": {"duplicate": 40, "leakage_cosine": 120, "leakage_ngram": 20, "label_mismatch": 90},
   "leakage_drop_rate": 0.1186,
   "frozen": false
 }
@@ -117,6 +117,12 @@ Result:
 
 `leakage_drop_rate = (leakage_cosine + leakage_ngram) / n_candidates`, 0 for eval. For eval,
 `frozen = true` and `sha256` is the hash of `eval.jsonl` (also written to `eval.sha256`).
+
+Blind label check (eval and train): every candidate that passed the leakage guard is labelled again
+by the generator with the student's exact prompt (task, fields, guidelines; no target label),
+temperature 0. It is kept only if that answer equals its target output; the rest are counted in
+`dropped.label_mismatch`. Label-conditioned generation draws urgency and flags at random, and the
+generated text does not always support them (seen at CHECKPOINT 1 of run `merchant-triage-wiivan`).
 
 ## POST /train
 

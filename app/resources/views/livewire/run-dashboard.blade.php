@@ -37,6 +37,11 @@
             <p class="mt-1 text-sm text-violet-900">
                 Eval set frozen with hash <span class="font-mono text-xs">{{ \Illuminate\Support\Str::limit($report->evalDataset()?->sha256 ?? '', 16, '...') }}</span>.
                 @if ($trainSet) Leakage guard dropped {{ $trainSet->leakageDropped() }} of {{ $trainSet->stats['n_candidates'] ?? '?' }} candidates ({{ Fmt::pct($trainSet->leakageDropRate()) }}). @endif
+                @foreach (array_filter([$report->evalDataset(), $trainSet]) as $set)
+                    @isset($set->stats['dropped']['label_mismatch'])
+                        Blind label check dropped {{ $set->stats['dropped']['label_mismatch'] }} {{ $set->purpose }} candidates whose text did not match their label.
+                    @endisset
+                @endforeach
                 Compare the samples below, then approve.
             </p>
             <div class="mt-4 flex items-center gap-3">

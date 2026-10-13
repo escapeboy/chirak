@@ -76,7 +76,11 @@ class FakeLlm:
             for n, lang, label in items:
                 self.counter += 1
                 out.append({"n": int(n), "text": f"unique sample {self.counter} {lang} {label} zq{self.counter}x"})
-            return "```json\n" + json.dumps(out) + "\n```", 5.0
+            if items or "language=" in user:
+                return "```json\n" + json.dumps(out) + "\n```", 5.0
+            # blind re-label of a generated text: the fake texts carry their label, so echo it back
+            pairs = re.findall(r'(\w+)=("[^"]*"|true|false)', user)
+            return json.dumps({k: json.loads(v) for k, v in pairs}, separators=(",", ":")), 5.0
         if self.student_reply is not None:
             return self.student_reply(model, user), 12.0
         for cat in ("orders", "returns", "payments"):
