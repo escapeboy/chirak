@@ -1,2 +1,5 @@
 2026-10-12T19:35:33Z start chirak-gpu (create)
 2026-10-12T22:17:03Z stop jyipvchu8hbclj (spike done; 2.69 h x $2.39 = $6.43; balance $14.05)
+2026-10-13T09:33:56Z start 2vbw6kcoeshphn (MI350X, US, $5.49/h, pod volume 300GB; MI300X out of stock everywhere)
+2026-10-13T09:51Z terminate 2vbw6kcoeshphn (never booted: GraphQL dockerArgs cannot override the vLLM image entrypoint; ~0.3 h x $5.49 = ~$1.6)
+2026-10-13T09:50:56Z start kjek315yyuob1d (MI350X, US, $5.49/h, from template 8syzxxdnn2 with bash entrypoint)
