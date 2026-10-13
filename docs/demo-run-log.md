@@ -53,3 +53,19 @@ restoring the run's artifacts: `make eval` gave the adapter 0.9907 again, and th
 gave base 4/5 / 2/5 and adapter 5/5 / 5/5 (the answer for one ticket differs from the first check).
 The numbers above keep the first, lower result. The per-item predictions are in
 `evals/{base,iter-1}/predictions.jsonl` of the run (copied to `../chirak-artifacts/mi350-2026-10-13-demo/`).
+
+## Incident: local database wiped (2026-10-13, ~16:37 UTC)
+
+`php artisan optimize` had cached the MariaDB config; a later `phpunit` run then ignored
+`phpunit.xml`'s SQLite settings and `RefreshDatabase` migrated the real local database fresh. All
+rows of runs 1–5 were lost (no binlog). Files were not affected. `tests/TestCase.php` now refuses to
+run against a cached config or a non-SQLite connection.
+
+Run 4 was rebuilt with `php artisan chirak:restore-run` from the worker's own job records (the
+generate, train and evaluate results the pipeline had stored) and the run's files; every rebuilt row
+carries `restored` with the job ids it came from, and the stop decision was recomputed by the same
+`StopRules` code. Checked after the rebuild: eval sha256 `6ecec925…`, 215 rows, base 0.8406,
+iteration 1 0.9907, stop reason "target met (0.991 >= 0.920)", 15 seeds and 5 hold-out tickets.
+Not rebuilt: runs 1–3 (integration test and the two discarded runs; their files remain in
+`app/storage/app/runs/` and `../chirak-artifacts/`) and run 5 (`merchant-triage-ieqgej`, lost at the
+baseline step; its files are in `../chirak-artifacts/mi350-2026-10-13-pod3/`).
