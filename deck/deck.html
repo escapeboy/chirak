@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chirak deck</title>
+<style>
+  @page { size: 1600px 900px; margin: 0; }
+  :root { --ink: #0f172a; --muted: #475569; --accent: #4f46e5; --green: #047857; --line: #e2e8f0; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Inter", "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; }
+  .slide { width: 1600px; height: 900px; padding: 80px 100px; page-break-after: always; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .slide:last-child { page-break-after: auto; }
+  h1 { font-size: 88px; margin: 0 0 16px; letter-spacing: -2px; }
+  h2 { font-size: 54px; margin: 0 0 36px; letter-spacing: -1px; }
+  p, li { font-size: 30px; line-height: 1.4; color: var(--muted); }
+  li { margin-bottom: 14px; }
+  ul { padding-left: 34px; margin: 0; }
+  b, strong { color: var(--ink); }
+  .kicker { font-size: 24px; text-transform: uppercase; letter-spacing: 3px; color: var(--accent); font-weight: 700; margin-bottom: 18px; }
+  .foot { position: absolute; bottom: 36px; left: 100px; right: 100px; display: flex; justify-content: space-between; font-size: 18px; color: #94a3b8; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .card { border: 2px solid var(--line); border-radius: 18px; padding: 28px 30px; background: var(--bg); }
+  .card h3 { font-size: 30px; margin: 0 0 10px; }
+  .card p { font-size: 24px; margin: 0; }
+  .big { font-size: 96px; font-weight: 800; letter-spacing: -3px; color: var(--ink); }
+  .big.g { color: var(--green); }
+  .label { font-size: 22px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 26px; }
+  th, td { text-align: left; padding: 14px 16px; border-bottom: 2px solid var(--line); }
+  th { color: var(--muted); font-size: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .note { font-size: 22px; color: var(--muted); margin-top: 22px; }
+  .flow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .step { border: 2px solid var(--accent); color: var(--ink); border-radius: 14px; padding: 18px 22px; font-size: 25px; font-weight: 600; background: #eef2ff; }
+  .arrow { font-size: 34px; color: var(--accent); }
+  .shot { width: 100%; border: 2px solid var(--line); border-radius: 12px; }
+  .title-slide { justify-content: center; background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%); }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 22px; }
+</style>
+</head>
+<body>
+
+<section class="slide title-slide">
+  <div class="kicker">AMD Developer Hackathon ACT III · Reinvent Commerce</div>
+  <h1>Chirak</h1>
+  <p style="font-size:40px;color:var(--ink);max-width:1200px">Describe a task, give a few examples, get a small fine-tuned model that does that one job on your own server.</p>
+  <p style="margin-top:40px">Чирак: apprentice. A large model teaches a small one a single craft.</p>
+  <p style="margin-top:30px;font-size:24px">github.com/escapeboy/chirak · MIT</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Problem</div>
+  <h2>Shops need a narrow model, not a data science team</h2>
+  <ul>
+    <li><b>Narrow, repetitive jobs:</b> route a support ticket, flag what needs a person, set urgency. A general chatbot API is overkill and costs per call forever.</li>
+    <li><b>Data stays home:</b> customer tickets carry names, orders and payment details. In the EU (GDPR) many shops prefer a model on their own server.</li>
+    <li><b>No ML engineer:</b> building a fine-tune means data, an honest eval, training and serving. Small merchants cannot staff that.</li>
+    <li><b>Bulgarian matters:</b> customers write BG, EN and both in one message.</li>
+  </ul>
+  <div class="foot"><span>Chirak</span><span>2</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">What it does</div>
+  <h2>One loop, from description to served adapter</h2>
+  <div class="flow">
+    <div class="step">Task + 15 seed tickets</div><div class="arrow">→</div>
+    <div class="step">Frozen eval (sha256)</div><div class="arrow">→</div>
+    <div class="step">Baseline of the base model</div><div class="arrow">→</div>
+    <div class="step">Synthetic train data</div>
+  </div>
+  <div class="flow" style="margin-top:22px">
+    <div class="arrow">→</div><div class="step">Human checkpoint</div><div class="arrow">→</div>
+    <div class="step">bf16 LoRA training</div><div class="arrow">→</div>
+    <div class="step">Strict eval</div><div class="arrow">→</div>
+    <div class="step">Claude failure analysis</div><div class="arrow">→</div>
+    <div class="step">Stop rules or regenerate</div>
+  </div>
+  <p style="margin-top:50px">The output is a LoRA adapter for Qwen3.5-4B, a public report built from stored results, and a playground that compares the adapter with the base model side by side.</p>
+  <div class="foot"><span>Chirak</span><span>3</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Why it is different</div>
+  <h2>Measured honestly, stopped by rules</h2>
+  <div class="grid2">
+    <div class="card"><h3>Eval first</h3><p>The eval set is generated and frozen with a sha256 before any training data exists. A reply that is not exactly the JSON object counts as wrong.</p></div>
+    <div class="card"><h3>No leakage</h3><p>Train data is written by a different prompt that cannot see eval. Near-copies (bge-m3 cosine ≥ 0.92 or a shared 8-gram) are dropped and counted.</p></div>
+    <div class="card"><h3>Failure-driven data</h3><p>Claude reads the confusion matrix and failures and asks for the next slices in strict JSON. Guidance that quotes eval text is discarded.</p></div>
+    <div class="card"><h3>Deterministic stop</h3><p>Target met, 3 iterations, under 1 point of gain, or leakage over 30%. In code, not left to the LLM. It also says "not worth fine-tuning".</p></div>
+  </div>
+  <div class="foot"><span>Chirak</span><span>4</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Demo run · merchant ticket triage, BG/EN</div>
+  <h2 style="margin-bottom:24px">Base 0.84 → fine-tuned 0.99 macro-F1</h2>
+  <div class="grid2" style="grid-template-columns: 1.05fr 1fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>Frozen eval, 215 tickets</th><th>Base 4B</th><th>+ LoRA</th></tr>
+        <tr><td>macro-F1 (category)</td><td>0.84</td><td><b>0.99</b></td></tr>
+        <tr><td>urgency accuracy</td><td>0.87</td><td><b>0.96</b></td></tr>
+        <tr><td>needs_human accuracy</td><td>0.77</td><td><b>0.95</b></td></tr>
+        <tr><td>all 3 fields right</td><td>0.60</td><td><b>0.91</b></td></tr>
+        <tr><td>valid JSON</td><td>100%</td><td>100%</td></tr>
+      </table>
+      <p class="note">Eval and train passed a blind label check by the 27B generator, so this eval holds the clear cases. Unfiltered checks, small samples: 15 seed tickets, all fields 7/15 → 11/15; 5 hold-out tickets, 2/5 → 4/5. Re-scored with <span class="mono">make eval</span>: adapter 0.9907 in 3/3 runs, base 0.836–0.846.</p>
+    </div>
+    <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
+  </div>
+  <div class="foot"><span>Run merchant-triage-g4oirl · eval sha256 6ecec925…3c9160</span><span>5</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Built on AMD</div>
+  <h2>Everything runs on one AMD Instinct GPU</h2>
+  <table>
+    <tr><th>Step</th><th>Stack</th><th>Demo run on MI350X</th></tr>
+    <tr><td>Data generation, Qwen3.8-27B</td><td>vLLM 0.31 on ROCm 7.2</td><td>1000 train items from 3923 candidates, ~6 min</td></tr>
+    <tr><td>Leakage guard, bge-m3</td><td>PyTorch ROCm</td><td>same GPU</td></tr>
+    <tr><td>LoRA training, Qwen3.5-4B bf16</td><td>torch 2.14.1+rocm7.2, peft, trl</td><td>1000 examples, 2 epochs, 130 s, 12 GB</td></tr>
+    <tr><td>Eval and serving</td><td>vLLM, runtime LoRA hot-load</td><td>215 tickets per eval</td></tr>
+  </table>
+  <p class="note">The whole demo run took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
+  <div class="foot"><span>Chirak</span><span>6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Market</div>
+  <h2>Who pays first</h2>
+  <div class="grid3">
+    <div class="card"><h3>Online shops</h3><p>Ticket triage, order-intent detection, review moderation in their own languages. Pay per run: GPU time plus a margin. A run like the demo uses about $1.60 of GPU.</p></div>
+    <div class="card"><h3>Regulated sectors</h3><p>Banks, health and public bodies that cannot send texts to an external API. Self-hosted licence: the factory and the adapters run inside their network.</p></div>
+    <div class="card"><h3>Agencies</h3><p>Integrators who build support tooling for many small merchants and need a repeatable way to produce and prove a small model per client.</p></div>
+  </div>
+  <p class="note">This slide is a plan, not traction: there are no customers yet.</p>
+  <div class="foot"><span>Chirak</span><span>7</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Architecture</div>
+  <h2>Control plane decides, GPU worker executes</h2>
+  <div class="grid2">
+    <div class="card"><h3>Control plane · Laravel 12</h3><p>Livewire 3 UI and Tailwind v4, MariaDB, Horizon queues. Run state machine, stop rules, Claude failure analyst, public read-only reports that keep working when the GPU is off.</p></div>
+    <div class="card"><h3>GPU worker · FastAPI</h3><p>Async jobs: /generate, /train, /evaluate, /serve, /predict. Bound to localhost; reached only through an SSH tunnel with a bearer token. Artifacts under /data/runs/&lt;run&gt;/.</p></div>
+  </div>
+  <p style="margin-top:36px">Open source under MIT. The worker API is a written contract, so the GPU side can move to any ROCm host. Tests run without a GPU: pytest with a fake vLLM, PHPUnit with a fake worker.</p>
+  <div class="foot"><span>Chirak</span><span>8</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Next</div>
+  <h2>Next steps</h2>
+  <ul>
+    <li><b>Harder evals:</b> a human-labelled slice next to the synthetic eval, so a 0.99 on clear cases is checked against messy real tickets.</li>
+    <li><b>Extraction tasks:</b> order numbers, products, amounts, not only classification.</li>
+    <li><b>Multi-tenant runs</b> on a shared GPU with a queue, and adapters per merchant.</li>
+    <li><b>Preference tuning (DPO)</b> once a classification adapter exists.</li>
+    <li><b>A marketplace of adapters</b> for common commerce tasks, each with its frozen eval and report.</li>
+  </ul>
+  <div class="foot"><span>github.com/escapeboy/chirak</span><span>9</span></div>
+</section>
+
+</body>
+</html>
