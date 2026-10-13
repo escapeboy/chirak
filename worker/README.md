@@ -16,7 +16,7 @@ ssh -p $POD_SSH_PORT root@$POD_SSH_HOST 'cp /data/chirak/worker/start.sh /data/s
 
 `start.sh` restores `/opt/venv-train`, installs `worker/requirements.txt`, sources `/data/chirak/.env`
 and starts the worker on `127.0.0.1:8100` (log: `/data/logs/worker.log`). Reach it through
-`ssh -N -L 8100:127.0.0.1:8100 ...`. Alternatively use the image `ghcr.io/escapeboy/chirak-worker`.
+`ssh -N -L 8100:127.0.0.1:8100 ...`. Alternatively use the image `ghcr.io/escapeboy/chirak-worker:latest` (linux/amd64, built by CI on 2026-10-13; built and pushed, not yet run on a GPU — the demo pods used the rsync path above).
 
 Local, no GPU (unit tests): `uv venv .venv --python 3.12 && uv pip install -r requirements-dev.txt && make test`.
 
