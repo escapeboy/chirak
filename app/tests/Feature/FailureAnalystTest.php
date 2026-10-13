@@ -120,7 +120,7 @@ class FailureAnalystTest extends TestCase
         $this->assertSame(config('chirak.orchestrator.model'), $decision->model);
     }
 
-    /** @dataProvider answers */
+    #[\PHPUnit\Framework\Attributes\DataProvider('answers')]
     public function test_validation_rules(mixed $answer, bool $valid): void
     {
         $this->assertSame($valid, FailureAnalyst::validate($answer, 1000) === []);

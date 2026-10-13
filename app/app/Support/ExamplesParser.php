@@ -13,7 +13,7 @@ class ExamplesParser
         $items = [];
         $errors = [];
 
-        foreach (preg_split('/\R/', trim($jsonl)) as $n => $line) {
+        foreach (preg_split('/\r\n|\n|\r/', trim($jsonl)) as $n => $line) {
             if (trim($line) === '') {
                 continue;
             }
