@@ -19,8 +19,9 @@ from .schemas import GenerateRequest, TaskSpec
 from .vllm import LlmBackend
 
 BATCH = 5
-MAX_ROUNDS = 4
+MAX_ROUNDS = 6
 OVERSAMPLE = 1.25
+MIN_ACCEPT = 0.15  # floor for the per-slice acceptance estimate, so one bad round cannot explode the next
 DROP_KEYS = ("duplicate", "leakage_cosine", "leakage_ngram", "label_mismatch")
 GUIDANCE_NGRAM = 5
 
@@ -112,13 +113,17 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     n_candidates = 0
     total_target = sum(quota.values())
 
+    tried = dict.fromkeys(quota, 0)
     for rnd in range(MAX_ROUNDS):
         have = {name: sum(1 for a in accepted if a["slice"] == name) for name in quota}
         targets: list[dict] = []
         for sl in slices:
             deficit = quota[sl["name"]] - have[sl["name"]]
             if deficit > 0:
-                count = math.ceil(deficit * (OVERSAMPLE if rnd == 0 else 1.5))
+                # The label check can reject most candidates of a slice; size the next round by its observed rate.
+                rate = max(have[sl["name"]] / tried[sl["name"]], MIN_ACCEPT) if tried[sl["name"]] else 1 / OVERSAMPLE
+                count = math.ceil(deficit / rate * 1.1)
+                tried[sl["name"]] += count
                 targets += make_targets(spec, sl, count, rng, offset=rng.randrange(1000))
         if not targets:
             break

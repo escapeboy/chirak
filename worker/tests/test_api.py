@@ -94,6 +94,28 @@ def test_generated_items_whose_blind_label_disagrees_are_dropped(client, setting
     assert relabels and all("label:" not in m[-1]["content"] for m in relabels)  # the target is never shown
 
 
+def test_quota_is_filled_when_the_label_check_rejects_most_candidates(client, spec_dict, llm):
+    orig = llm.chat
+    seen = {"n": 0}
+
+    def chat(model, messages, temperature, max_tokens, **extra):
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0:
+            seen["n"] += 1
+            if seen["n"] % 3:  # two of every three candidates disagree
+                got = json.loads(text)
+                got["urgent"] = not got["urgent"]
+                text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict, n=30)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["n"] == 30 and set(res["by_slice"].values()) == {10}
+    assert res["dropped"]["label_mismatch"] >= 40
+
+
 def _eval_for(settings, run_id):
     d = settings.runs_dir / run_id
     d.mkdir(parents=True, exist_ok=True)
