@@ -70,13 +70,40 @@ def test_generate_train_uses_leakage_guard_and_hotter_temperature(client, settin
     assert "SEED-MUST-NOT-APPEAR" not in json.dumps(llm.prompts) and "4412" not in json.dumps(llm.prompts)
 
 
-def test_generate_train_target_slices(client, spec_dict):
+def _eval_for(settings, run_id):
+    d = settings.runs_dir / run_id
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "eval.jsonl").write_text((FIXTURES / "eval.jsonl").read_text())
+    return str(d / "eval.jsonl")
+
+
+def test_generate_train_target_slices(client, settings, spec_dict):
     body = {"run_id": "demo-2", "purpose": "train", "iteration": 1, "task_spec": spec_dict, "n": 8,
             "target_slices": [{"name": "returns", "n": 6, "guidance": "Returns mixed with payment questions."},
-                              {"name": "payments", "n": 2}]}
+                              {"name": "payments", "n": 2}],
+            "avoid_near": [_eval_for(settings, "demo-2")]}
     job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
     assert job["status"] == "succeeded", job["error"]
     assert job["result"]["by_slice"] == {"returns": 6, "payments": 2}
+    assert job["result"]["guidance_rejected"] == 0
+
+
+def test_train_requires_own_eval_in_avoid_near(client, settings, spec_dict):
+    _eval_for(settings, "demo-3")
+    body = {"run_id": "demo-3", "purpose": "train", "iteration": 1, "task_spec": spec_dict, "n": 4}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "avoid_near" in r.json()["detail"]
+
+
+def test_guidance_quoting_eval_is_dropped(client, settings, spec_dict, llm):
+    body = {"run_id": "demo-4", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4,
+            "target_slices": [{"name": "orders", "n": 4,
+                               "guidance": "Write tickets like 'поръчка 4412 още не е пристигнала' please."}],
+            "avoid_near": [_eval_for(settings, "demo-4")]}
+    job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    assert job["result"]["guidance_rejected"] == 1
+    assert "4412" not in json.dumps(llm.prompts)
 
 
 def test_generate_rejects_bad_input(client, settings, spec_dict):
@@ -197,3 +224,16 @@ def test_evaluate_fails_when_vllm_is_unreachable(client, settings, spec_dict, ll
     body = {"run_id": "demo-1", "eval_file": str(ev), "model": "base", "task_spec": spec_dict, "label": "b"}
     job = wait_job(client, client.post("/evaluate", json=body).json()["job_id"])
     assert job["status"] == "failed" and "request failed" in job["error"]
+
+
+def test_evaluate_fails_when_a_request_keeps_failing(client, settings, spec_dict, llm):
+    ev = _eval_setup(settings)
+
+    def boom(*a, **k):
+        raise ConnectionError("vLLM down")
+
+    llm.chat = boom
+    body = {"run_id": "demo-1", "eval_file": str(ev), "model": "base", "task_spec": spec_dict, "label": "baseline"}
+    job = wait_job(client, client.post("/evaluate", json=body).json()["job_id"])
+    assert job["status"] == "failed" and "request failed" in job["error"]
+    assert not (settings.runs_dir / "demo-1" / "evals" / "baseline" / "metrics.json").exists()

@@ -47,7 +47,9 @@ def compute_metrics(spec: TaskSpec, rows: list[dict]) -> dict:
         f1 = 2 * p * rec / (p + rec) if p + rec else 0.0
         per_class[c] = {"precision": round(p, 4), "recall": round(rec, 4), "f1": round(f1, 4), "support": support}
 
-    supported = [v["f1"] for v in per_class.values() if v["support"] > 0]
+    # like sklearn: average over every class that is either expected or predicted
+    predicted_any = {c for c in classes if sum(matrix[j][idx[c]] for j in range(len(labels)))}
+    supported = [v["f1"] for c, v in per_class.items() if v["support"] > 0 or c in predicted_any]
     lat = [r["latency_ms"] for r in rows]
     div = n or 1
     return {

@@ -12,7 +12,7 @@ import numpy as np
 from .config import Settings
 from .embedding import Embedder
 from .jobs import JobContext
-from .leakage import LeakageGuard, dedup, file_sha256, read_avoid_texts
+from .leakage import LeakageGuard, dedup, file_sha256, ngram_set, read_avoid_texts
 from .parsing import parse_generated_items
 from .prompts import build_eval_generation_prompt, build_train_generation_prompt
 from .schemas import GenerateRequest, TaskSpec
@@ -22,6 +22,7 @@ BATCH = 5
 MAX_ROUNDS = 4
 OVERSAMPLE = 1.25
 DROP_KEYS = ("duplicate", "leakage_cosine", "leakage_ngram")
+GUIDANCE_NGRAM = 5
 
 
 def plan_slices(req: GenerateRequest) -> list[dict]:
@@ -90,7 +91,17 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
     rng = random.Random(f"{req.run_id}/{req.purpose}/{req.iteration}")
     slices = plan_slices(req)
     quota = {s["name"]: s["n"] for s in slices}
-    guard = None if is_eval else LeakageGuard(embedder, read_avoid_texts(avoid_files))
+    avoid_texts = [] if is_eval else read_avoid_texts(avoid_files)
+    guard = None if is_eval else LeakageGuard(embedder, avoid_texts)
+    # Slice guidance comes from Claude's failure analysis, which sees eval failures. Guidance that
+    # quotes eval text would put eval content into the train prompt, so it is dropped here.
+    guidance_rejected = 0
+    if avoid_texts:
+        avoid_grams = set().union(*(ngram_set(t, GUIDANCE_NGRAM) for t in avoid_texts))
+        for sl in slices:
+            if sl["guidance"] and not ngram_set(sl["guidance"], GUIDANCE_NGRAM).isdisjoint(avoid_grams):
+                sl["guidance"] = ""
+                guidance_rejected += 1
 
     ctx.progress("starting generator")
     llm.ensure_mode("generator")
@@ -163,6 +174,7 @@ def run_generate(req: GenerateRequest, settings: Settings, llm: LlmBackend, embe
         "by_slice": by_slice, "dropped": dropped,
         "leakage_drop_rate": 0 if is_eval or not n_candidates else round(leaked / n_candidates, 4),
         "frozen": is_eval,
+        "guidance_rejected": guidance_rejected,
     }
 
 

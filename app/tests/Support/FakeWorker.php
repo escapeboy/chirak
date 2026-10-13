@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 /** In-memory stand-in for the GPU worker and the Anthropic API. Records every outgoing request. */
 class FakeWorker
 {
-    public const SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    public const SHA = '694061131c4d9263dd454d770ca82bfa543f4c683d262e56e9dc37d099d17297'; // sha256 of the artifact body below
 
     public bool $offline = false;
 
@@ -110,7 +110,7 @@ class FakeWorker
 
         return [
             'path' => "/data/runs/{$b['run_id']}/$file",
-            'sha256' => $b['purpose'] === 'eval' ? self::SHA : str_repeat((string) ($i ?? 0), 64),
+            'sha256' => self::SHA,
             'n' => $b['n'],
             'n_candidates' => $candidates,
             'by_slice' => ['orders' => 10],

@@ -92,6 +92,9 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         if req.purpose == "eval" and (rdir / "eval.jsonl").exists():
             raise HTTPException(409, "eval.jsonl already exists for this run; the eval set is frozen")
         avoid = [str(resolve_under_runs(settings, p)) for p in req.avoid_near] if req.purpose == "train" else []
+        if req.purpose == "train" and str(resolve_under_runs(settings, str(rdir / "eval.jsonl"))) not in avoid:
+            # without the run's own eval file the leakage guard would silently check nothing
+            raise HTTPException(400, "train generation requires this run's eval.jsonl in avoid_near")
         job_id = svc.runner.submit(
             "generate", req.run_id,
             lambda ctx: run_generate(req, settings, svc.llm, svc.embedder, ctx, avoid))

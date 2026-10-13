@@ -308,6 +308,11 @@ class RunPipeline
         $name = $purpose === 'eval' ? 'eval.jsonl' : "train-$iteration.jsonl";
         $this->worker->downloadArtifact($run->slug, $this->relative($run, $result['path']), "{$run->slug}/$name");
 
+        $localSha = hash('sha256', (string) Storage::disk('runs')->get("{$run->slug}/$name"));
+        if ($localSha !== $result['sha256']) {
+            throw new WorkerRejected(409, "downloaded $name does not match the worker's sha256");
+        }
+
         Dataset::updateOrCreate(
             ['run_id' => $run->id, 'purpose' => $purpose, 'iteration' => $iteration],
             [
