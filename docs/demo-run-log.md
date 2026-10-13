@@ -34,9 +34,10 @@ Stopped after iteration 1 by the rule "target met (0.991 >= 0.920)". Training: 1
 
 Reproduction with `make eval` (same eval sha256 `6ecec925…3c9160`):
 - adapter: 0.9907 macro-F1 in 3 of 3 re-runs;
-- base: 0.8406 (pipeline), then 0.8459, 0.8415, 0.8362 in re-runs. Decoding is greedy, but
-  vLLM batches concurrent requests differently each run and a few near-tie answers flip
-  (about 1 item of 215). Treat the baseline as 0.84 ± 0.005.
+- base: 0.8406 (pipeline), then 0.8459, 0.8415, 0.8362 in re-runs, about 1 item of 215 flipping.
+  Decoding is greedy (temperature 0). Hypothesis, not verified: vLLM batches the concurrent
+  requests differently each run, which changes the numerics enough to flip near-tie answers;
+  running the eval with concurrency 1 twice would confirm it. Treat the baseline as 0.84 ± 0.005.
 
 What the 0.99 means: train and eval labels both passed the same blind label check by the 27B
 generator, so the student is measured on cases where the generator's reading of the guidelines
