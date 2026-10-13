@@ -12,3 +12,5 @@
 2026-10-13T18:47:30Z STOP 0d23ljhj8ofgn6 (volume kept; waiting for human review of eval-hard)
 2026-10-13T18:54:08Z RESUME 0d23ljhj8ofgn6 (eval-hard leakage + evaluations)
 2026-10-13T19:00:12Z STOP 0d23ljhj8ofgn6 (Task 2 done; volume kept)
+2026-10-13T19:14:26Z RESUME-REQ 0d23ljhj8ofgn6 (Task 3: iterations against eval-hard)
+2026-10-13T21:08:35Z STOP 0d23ljhj8ofgn6 (Task 3/4 done; artifacts copied to chirak-artifacts/mi350-2026-10-13-pod4; volume kept)

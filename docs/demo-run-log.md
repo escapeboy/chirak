@@ -101,3 +101,52 @@ immediately or I will"); one shares an order number. Not retrained, as instructe
 | + LoRA iter-1 | 0.9907 | 0.8254 | 0.8487 | 0.8824 | 0.8992 | 0.6555 |
 
 Reproduce: `make eval RUN=merchant-triage-g4oirl ADAPTER=<base|…/iter-1/adapter> EVAL=eval-hard`.
+
+## Iterating against eval-hard (Task 3, 2026-10-13)
+
+`php artisan chirak:retarget-hard merchant-triage-g4oirl` reopened the completed run with eval-hard as
+the target slice (target macro-F1 ≥ 0.92). Each iteration is evaluated on both slices; decisions and
+the stop rules use the hard slice, the clean-slice decision of iteration 1 stays as it was. Train data
+for targeted slices avoids both evals (`avoid_near` = eval + eval-hard) and sends up to 400 label-check
+rejects per iteration to the Claude judge; a reject is kept only when the judge's label equals the
+label the generator was asked for.
+
+| Model | clean macro-F1 | clean exact | hard macro-F1 | hard accuracy | hard exact | hard complaints F1 |
+|---|---|---|---|---|---|---|
+| Qwen3.5-4B base | 0.8406 | 0.5953 | 0.7723 | 0.8151 | 0.5882 | – |
+| + LoRA iter-1 | 0.9907 | 0.9070 | 0.8254 | 0.8487 | 0.6555 | 0.55 |
+| + LoRA iter-2 (served) | 0.9815 | 0.9023 | 0.8441 | 0.8655 | 0.6639 | 0.67 |
+| + LoRA iter-3 | 0.9813 | 0.9023 | 0.8332 | 0.8655 | 0.6555 | 0.53 |
+
+Clean base values are the pipeline's own evaluation (`app/storage/app/runs/merchant-triage-g4oirl/evals/base/`); the pod copy of `evals/base` was overwritten by a later re-run (0.8362, see the baseline note above).
+
+Stopped: maximum of 3 iterations. The target was not met. Iteration 2 is the best on the hard slice
+and is served. The clean slice dipped from 0.9907 to 0.9815 (2 of 215 tickets).
+
+- Judge rescue of train rejects: iteration 2 accepted 25 of 400, iteration 3 36 of 400. Rejects of
+  the train path are mostly mislabels too, so the judge adds few items.
+- Leakage guard dropped 84 (iter-2) and 61 (iter-3) train items by 8-gram, 0 by cosine.
+- Caveat: the failure analyst sees eval-hard failures and its slice guidance sometimes describes
+  them closely (e.g. "GDPR, data breach, contract threats") although the prompt forbids quoting
+  tickets. Measured closeness of each eval-hard ticket to its nearest train ticket (bge-m3 cosine,
+  `scratchpad/closeness.py`): train-1 median 0.743, p90 0.794, max 0.890, ≥0.85: 1; train-2 median
+  0.730, p90 0.809, max 0.888, ≥0.85: 4. No train item reaches 0.90. The tail moved slightly toward
+  eval-hard; the hard-slice gain (+1.9 pt) should be read with this in mind.
+- Reproducibility check: `make eval RUN=merchant-triage-g4oirl ADAPTER=/data/runs/merchant-triage-g4oirl/iter-2/adapter EVAL=eval-hard`
+  (label `verify-iter-2.eval-hard`) gave macro-F1 0.8441, equal to the stored value; exact match was
+  0.6723 vs 0.6639 stored (1 of 119 tickets differs, vLLM batching is not bit-deterministic).
+
+## Held-out examples (Task 4)
+
+The 5 held-out tickets were never written to any dataset file. They were written by Claude at the
+owner's request, not by a human. `php artisan chirak:holdout merchant-triage-g4oirl` ran them through
+the playground path (`/predict`) for the base model and the served adapter (iter-2) and stored the
+answers in `holdout_predictions`. Full JSON match: base 2/5, iter-2 5/5. Five examples are a
+spot check, not a metric.
+
+## Burn (Tasks 2–4, pod 0d23ljhj8ofgn6, MI350X $5.49/h)
+
+GPU: 137 min ≈ 2.29 h ≈ $12.6 (about 70 min of it idle after the laptop killed the SSH tunnel and
+Horizon for low memory at 19:55Z). Anthropic judge (`claude-sonnet-5-5`): eval-hard 240 requests,
+75.7k in / 10.3k out; train-2 800 requests, 295.2k / 37.5k; train-3 800 requests, 289.7k / 39.9k.
+Failure-analyst calls (3) are not counted here; their usage was not stored.
