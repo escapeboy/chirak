@@ -169,14 +169,15 @@ def cmd_freeze(a) -> dict:
     if set(reviewed) != expected:
         raise SystemExit(f"reviewed file does not match for-human-review.jsonl: "
                          f"missing {sorted(expected - set(reviewed))[:5]}, extra {sorted(set(reviewed) - expected)[:5]}")
-    rows, counts = [], {"judge+proposed": 0, "human": 0, "human_drop": 0}
+    # `reviewer` names who arbitrated the disagreements; "human" unless the owner delegated the review.
+    rows, counts = [], {"judge+proposed": 0, a.reviewer: 0, f"{a.reviewer}_drop": 0}
     for j in judged:
         if j["judge"] == j["proposed"]:
             label, src = j["proposed"], "judge+proposed"
         else:
-            label, src = resolve_human(spec, reviewed[j["id"]]), "human"
+            label, src = resolve_human(spec, reviewed[j["id"]]), a.reviewer
             if label is None:
-                counts["human_drop"] += 1
+                counts[f"{a.reviewer}_drop"] += 1
                 continue
         counts[src] += 1
         rows.append({"id": f"hard-{len(rows) + 1:04d}", "input": j["input"], "output": label, "slice": label[primary],
@@ -187,7 +188,7 @@ def cmd_freeze(a) -> dict:
     (run_dir / "eval-hard.sha256").write_text(digest + "\n")
     stats = {"path": str(out_path), "sha256": digest, "n": len(rows), "frozen": True, "frozen_at": frozen_at,
              "label_sources": counts, "by_slice": {k: sum(1 for r in rows if r["slice"] == k) for k in spec.primary.values},
-             "reviewed_sha256": hashlib.sha256(Path(a.reviewed).read_bytes()).hexdigest()}
+             "reviewer": a.reviewer, "reviewed_sha256": hashlib.sha256(Path(a.reviewed).read_bytes()).hexdigest()}
     (run_dir / "eval-hard" / "freeze.json").write_text(json.dumps(stats, indent=1))
     return stats
 
@@ -227,6 +228,7 @@ def main(argv=None) -> int:
     f = sub.add_parser("freeze")
     f.add_argument("--run-dir", required=True)
     f.add_argument("--reviewed", required=True)
+    f.add_argument("--reviewer", default="human")
     lk = sub.add_parser("leakage")
     lk.add_argument("--run-dir", required=True)
     lk.add_argument("--train", required=True)

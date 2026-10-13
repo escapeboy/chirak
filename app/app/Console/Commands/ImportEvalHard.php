@@ -54,7 +54,7 @@ class ImportEvalHard extends Command
         Storage::disk('runs')->put("{$run->slug}/eval-hard.jsonl", $body);
         $dataset ??= new Dataset(['run_id' => $run->id, 'purpose' => 'eval-hard', 'iteration' => null]);
         $dataset->fill([
-            'remote_path' => $freeze['path'], 'local_path' => "{$run->slug}/eval-hard.jsonl",
+            'remote_path' => "/data/runs/{$run->slug}/eval-hard.jsonl", 'local_path' => "{$run->slug}/eval-hard.jsonl",
             'n' => $stats['n_rows'], 'sha256' => $sha, 'frozen_at' => Carbon::parse($freeze['frozen_at']), 'stats' => $stats,
         ])->save();
         $this->info("eval-hard: {$stats['n_rows']} rows, sha256 $sha");

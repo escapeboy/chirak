@@ -10,3 +10,5 @@
 2026-10-13T16:49:16Z terminate zls6se55saw8dd (balance $36.63; CHECKPOINT 2 re-run, run 5 to baseline; ~2.3 h x $5.49 = ~$12.7; artifacts in ../chirak-artifacts/mi350-2026-10-13-pod3)
 2026-10-13T18:30:23Z START 0d23ljhj8ofgn6 MI350X $5.49/h  (Task 2: ambiguous pool for eval-hard)
 2026-10-13T18:47:30Z STOP 0d23ljhj8ofgn6 (volume kept; waiting for human review of eval-hard)
+2026-10-13T18:54:08Z RESUME 0d23ljhj8ofgn6 (eval-hard leakage + evaluations)
+2026-10-13T19:00:12Z STOP 0d23ljhj8ofgn6 (Task 2 done; volume kept)

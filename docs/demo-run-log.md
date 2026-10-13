@@ -69,3 +69,35 @@ iteration 1 0.9907, stop reason "target met (0.991 >= 0.920)", 15 seeds and 5 ho
 Not rebuilt: runs 1–3 (integration test and the two discarded runs; their files remain in
 `app/storage/app/runs/` and `../chirak-artifacts/`) and run 5 (`merchant-triage-ieqgej`, lost at the
 baseline step; its files are in `../chirak-artifacts/mi350-2026-10-13-pod3/`).
+
+## eval-hard for run 4 (Task 2, 2026-10-13)
+
+Run 4's 564 label-check rejects were only counted, not stored. The worker now writes them to
+`<file>.dropped.jsonl`. A new pool was generated on the eval path (`purpose=pool`, `pool-1.jsonl`;
+`eval.jsonl` untouched, still `6ecec925…`): 786 candidates, 575 rejected. After removing 27 items
+sharing an 8-gram with the clean eval and 33 near-copies inside the pool, 120 were sampled, 17–18
+per proposed category (`chirak_worker/hard_slice.py`).
+
+Judge: `claude-sonnet-5-5` with the student's exact prompt. The API rejects `temperature` for this
+model, so each item was judged twice and a disagreement between the two passes counts as no
+answer (3 items). A first attempt used max_tokens 200; the model's adaptive thinking cut off 8 of
+240 answers, so it was rerun with 4096 (attempt 1 kept in `eval-hard/attempt-1/`).
+
+- Judge agrees with the proposed label: 14 items → eval-hard with that label.
+- Judge disagrees: 106 items. In 82 of them the judge gives the same label as the generator's blind
+  answer, so most rejects are text that does not fit its drawn label rather than ambiguous text.
+- The owner delegated the review of the 106 to Claude Code (the agent building Chirak). These labels
+  are marked `label_source: claude-code-delegated`, not human: 84 judge, 9 blind, 4 proposed,
+  8 own label, 1 dropped (near-copy of another item). Rule applied: urgency high only for lost money,
+  a missed deadline or a threat to leave; needs_human only for refunds, complaints or legal matters.
+
+Frozen: `eval-hard.jsonl`, 119 items, sha256 `c5997a47…80a0f1`. Leakage vs train-1 (same guard):
+0 by cosine, 12 by 8-gram, mostly stock phrases ("it's not a huge deal since I", "I need this fixed
+immediately or I will"); one shares an order number. Not retrained, as instructed.
+
+| Model | eval (clean) macro-F1 | eval-hard macro-F1 | eval-hard accuracy | urgency | needs_human | exact |
+|---|---|---|---|---|---|---|
+| Qwen3.5-4B base | 0.8406 | 0.7723 | 0.8151 | 0.7815 | 0.8235 | 0.5882 |
+| + LoRA iter-1 | 0.9907 | 0.8254 | 0.8487 | 0.8824 | 0.8992 | 0.6555 |
+
+Reproduce: `make eval RUN=merchant-triage-g4oirl ADAPTER=<base|…/iter-1/adapter> EVAL=eval-hard`.
