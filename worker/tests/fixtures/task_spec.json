@@ -1,0 +1,10 @@
+{
+  "name": "shop-ticket-mini",
+  "description": "Triage customer-support tickets of an online shop.",
+  "languages": ["bg", "en"],
+  "fields": [
+    {"name": "category", "type": "enum", "primary": true, "values": ["orders", "returns", "payments"]},
+    {"name": "urgent", "type": "bool"}
+  ],
+  "guidelines": "orders: where is my parcel or order status. returns: sending an item back or refund of goods. payments: card charges, invoices, failed payments. urgent is true only when the customer is blocked or was charged wrongly."
+}

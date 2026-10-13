@@ -1,0 +1,10 @@
+{"id": "eval-0001", "input": "Здравейте, поръчка 4412 още не е пристигнала, а мина седмица.", "output": {"category": "orders", "urgent": false}, "slice": "orders", "lang": "bg", "source": "human"}
+{"id": "eval-0002", "input": "Where is my parcel? Tracking has not moved in 5 days.", "output": {"category": "orders", "urgent": false}, "slice": "orders", "lang": "en", "source": "human"}
+{"id": "eval-0003", "input": "Искам да върна обувките, малки са. Как да го направя?", "output": {"category": "returns", "urgent": false}, "slice": "returns", "lang": "bg", "source": "human"}
+{"id": "eval-0004", "input": "The jacket arrived damaged, I need a refund asap.", "output": {"category": "returns", "urgent": true}, "slice": "returns", "lang": "en", "source": "human"}
+{"id": "eval-0005", "input": "Таксуваха картата ми два пъти за една поръчка!", "output": {"category": "payments", "urgent": true}, "slice": "payments", "lang": "bg", "source": "human"}
+{"id": "eval-0006", "input": "Can I get an invoice for order 8890 made by my company?", "output": {"category": "payments", "urgent": false}, "slice": "payments", "lang": "en", "source": "human"}
+{"id": "eval-0007", "input": "Смених адреса след поръчката, още ли може да го променя?", "output": {"category": "orders", "urgent": false}, "slice": "orders", "lang": "bg", "source": "human"}
+{"id": "eval-0008", "input": "How long until you refund returned goods to my account?", "output": {"category": "returns", "urgent": false}, "slice": "returns", "lang": "en", "source": "human"}
+{"id": "eval-0009", "input": "Плащането с карта се отказва, а ми трябва продуктът днес.", "output": {"category": "payments", "urgent": true}, "slice": "payments", "lang": "bg", "source": "human"}
+{"id": "eval-0010", "input": "Order shows delivered but nothing is at my door.", "output": {"category": "orders", "urgent": true}, "slice": "orders", "lang": "en", "source": "human"}
