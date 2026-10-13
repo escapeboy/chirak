@@ -71,6 +71,7 @@
         </div>
 
         @include('run._results')
+        @include('run._holdout')
 
         <div class="grid gap-6 lg:grid-cols-2">
             @include('run._loss')

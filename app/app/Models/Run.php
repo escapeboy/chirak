@@ -60,6 +60,11 @@ class Run extends Model
         return $this->hasMany(Evaluation::class)->where('slice', 'hard');
     }
 
+    public function holdoutPredictions(): HasMany
+    {
+        return $this->hasMany(HoldoutPrediction::class)->orderBy('position');
+    }
+
     public function decisions(): HasMany
     {
         return $this->hasMany(Decision::class)->orderBy('iteration')->orderBy('id');

@@ -122,4 +122,27 @@ class EvalHardTest extends TestCase
         $this->artisan('chirak:retarget-hard', ['slug' => $run->slug])->assertFailed();
         $this->assertSame(Run::COMPLETED, $run->refresh()->status);
     }
+
+    public function test_report_shows_both_slices_the_hard_decisions_and_the_held_out_answers(): void
+    {
+        $this->worker->iterations = [1 => 0.95, 2 => 0.96, 3 => 0.97];
+        $this->worker->hard = ['base' => 0.70, 1 => 0.75, 2 => 0.90, 3 => 0.91];
+        $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
+        Dataset::create(['run_id' => $run->id, 'purpose' => 'eval-hard', 'remote_path' => "/data/runs/{$run->slug}/eval-hard.jsonl",
+            'local_path' => "{$run->slug}/eval-hard.jsonl", 'n' => 119, 'sha256' => FakeWorker::SHA, 'frozen_at' => now(),
+            'stats' => ['label_sources' => ['judge+proposed' => 14, 'claude-code-delegated' => 105]]]);
+        $this->artisan('chirak:retarget-hard', ['slug' => $run->slug])->assertSuccessful();
+        $this->drainQueue();
+        $this->artisan('chirak:holdout', ['slug' => $run->slug])->assertSuccessful();
+        $this->assertSame(2 * count($run->holdout_examples), $run->holdoutPredictions()->count());
+        $this->artisan('chirak:holdout', ['slug' => $run->slug])->assertSuccessful(); // stored answers are kept
+        $this->assertSame(2 * count($run->holdout_examples), $run->holdoutPredictions()->count());
+
+        $this->get("/r/{$run->slug}")->assertOk()
+            ->assertSeeText('Clean slice')->assertSeeText('Hard slice')
+            ->assertSeeText('90.0%')->assertSeeText('Macro-F1 (hard)')
+            ->assertSee("by Claude Code on the owner's delegation, not by a human", false)
+            ->assertSeeText('hard slice')->assertSeeText('Held-out examples')
+            ->assertSeeText($run->holdout_examples[0]['input']);
+    }
 }

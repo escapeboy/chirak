@@ -4,6 +4,7 @@
         <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="font-semibold">After iteration {{ $d->iteration }}</span>
+                @if ($report->hardDataset())<span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{{ $d->slice }} slice</span>@endif
                 <span @class(['rounded-full px-2.5 py-0.5 text-xs font-medium', 'bg-amber-50 text-amber-800' => $d->stop_rule['stop'], 'bg-blue-50 text-blue-700' => ! $d->stop_rule['stop']])>
                     Stop rules: {{ $d->stop_rule['stop'] ? 'stop' : 'continue' }}, {{ $d->stop_rule['reason'] }}
                 </span>
