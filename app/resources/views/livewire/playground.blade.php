@@ -26,7 +26,7 @@
         @endif
         <div class="flex items-center gap-3">
             <button wire:click="predict" wire:loading.attr="disabled" class="btn" @disabled(! $unlocked)>Compare</button>
-            <span wire:loading wire:target="predict" class="text-sm text-slate-500">Asking the GPU worker...</span>
+            <span wire:loading wire:target="predict" class="text-sm text-slate-500">Asking both models...</span>
             @unless ($unlocked)<span class="text-sm text-slate-500">Enter the demo token (top right) to run predictions.</span>@endunless
         </div>
         @if ($notice)<p class="text-sm text-amber-700">{{ $notice }}</p>@endif

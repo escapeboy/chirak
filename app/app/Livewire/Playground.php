@@ -31,7 +31,7 @@ class Playground extends Component
 
     public function predict(WorkerClient $worker): void
     {
-        if (! DemoToken::unlocked()) {
+        if (! $this->open()) {
             $this->notice = 'Enter the demo token (top right) to use the playground.';
 
             return;
@@ -45,6 +45,14 @@ class Playground extends Component
             $this->notice = 'Too many requests from your address. Try again in '.RateLimiter::availableIn($key).' s.';
 
             return;
+        }
+        if (! DemoToken::unlocked()) {
+            if (RateLimiter::tooManyAttempts('playground:public', config('chirak.playground_public_per_minute'))) {
+                $this->notice = 'The demo is busy right now. Try again in '.RateLimiter::availableIn('playground:public').' s.';
+
+                return;
+            }
+            RateLimiter::hit('playground:public', 60);
         }
         RateLimiter::hit($key, 60);
 
@@ -69,7 +77,12 @@ class Playground extends Component
         return view('livewire.playground', [
             'storedBase' => array_slice($evaluations->get('base')?->failures ?? [], 0, 5),
             'storedAdapter' => array_slice($evaluations->get($this->run->best_iteration)?->failures ?? [], 0, 5),
-            'unlocked' => DemoToken::unlocked(),
+            'unlocked' => $this->open(),
         ])->layout('components.layouts.app', ['title' => 'Playground']);
+    }
+
+    private function open(): bool
+    {
+        return DemoToken::unlocked() || config('chirak.playground_public');
     }
 }
