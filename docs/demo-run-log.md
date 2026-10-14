@@ -150,3 +150,49 @@ GPU: 137 min ≈ 2.29 h ≈ $12.6 (about 70 min of it idle after the laptop kill
 Horizon for low memory at 19:55Z). Anthropic judge (`claude-sonnet-5-5`): eval-hard 240 requests,
 75.7k in / 10.3k out; train-2 800 requests, 295.2k / 37.5k; train-3 800 requests, 289.7k / 39.9k.
 Failure-analyst calls (3) are not counted here; their usage was not stored.
+
+## Real-text checks (2026-10-14)
+
+Two public datasets with text written by people, scored for the base model and the served adapter
+(iteration 2). Builders: `demo/real/build_abcd.py`, `demo/real/build_twcs.py`, `demo/real/judge_real.py`.
+Files, judge output and metrics: `../chirak-artifacts/real-evals-2026-10-14/` (not in this repo: the
+tweets are CC BY-NC-SA). All three files were frozen (`freeze.json`, 09:49Z) before any model was scored.
+
+- **ABCD** (ASAPP, MIT): chats with an online clothing store, written by crowd workers who were given a
+  scenario. The label is the scenario mapped to our category; ABCD has no complaints, urgency or
+  needs_human, so only category is scored (the worker now skips fields missing from the expected
+  output). 300 tickets, 50 per class, from the dev and test splits; subflows that read two ways under
+  our guidelines (shipping fee, shipping-speed upgrades, a refund missing after a return, store-wide
+  questions, out of stock) were dropped. sha256 `f90e7577…b252`.
+- **ABCD-agreed**: the 215 of those where the Claude judge (two passes) gives the same category as the
+  scenario. The judge agreed on only 72%; most disagreements are "my order has not arrived" (scenario:
+  shipping, judge: orders). Our task guidelines do not say which one that is. sha256 `078c3fc4…0f0b`.
+- **Tweets** (Customer Support on Twitter, 2017, CC BY-NC-SA 4.0): the first tweet of a customer
+  thread answered by an online retailer (Amazon 231, Target 48, M&S 48, eBay 26, Argos 23, others),
+  English, 8+ words, handles and links removed. 400 sampled; labels from the Claude judge, kept where
+  both passes agree: 357. A spot check of 25 by Claude Code agreed with the category in about 22;
+  urgency and needs_human are less certain. sha256 `046498b8…fd5e`.
+- 8-gram overlap with train-1..3: ABCD 2 items (stock phrases), tweets 0.
+
+| | ABCD (300) accuracy | ABCD macro-F1, 6 classes | ABCD-agreed (215) accuracy | Tweets (357) macro-F1 | Tweets category acc | urgency | needs_human | all 3 right |
+|---|---|---|---|---|---|---|---|---|
+| Qwen3.5-4B base | 0.740 | 0.741 | 0.912 | 0.687 | 0.723 | 0.622 | 0.843 | 0.457 |
+| + LoRA iter-2 | 0.797 | 0.811 | 0.977 | 0.713 | 0.751 | 0.742 | 0.731 | 0.445 |
+
+Macro-F1 as stored by the worker also counts classes that are predicted but absent from the file;
+for ABCD that is complaints (F1 0), so the stored values are 0.635 / 0.695 (all) and 0.912 / 0.838
+(agreed). The table shows the 6 classes ABCD has.
+
+What this says:
+- On text written by people the adapter is still better than the base model on category: +5.7 pt
+  accuracy on ABCD, +2.8 pt on tweets. The gain is much smaller than on the synthetic clean slice
+  (0.84 → 0.98), and on real tweets both models are around 0.7.
+- needs_human got worse on tweets (0.84 → 0.73) and all-3-fields did not improve: the adapter learned
+  the synthetic data's idea of when a human is needed, which differs from the judge's on real tweets.
+- Main confusions: shipping vs orders vs complaints. "My parcel is late and I'm angry" can be any of
+  the three under the current guidelines. Clearer guidelines would help more than more data.
+
+Reproduce: `make eval RUN=merchant-triage-g4oirl ADAPTER=<base|/data/runs/merchant-triage-g4oirl/iter-2/adapter> EVAL=eval-real-abcd`
+(and `eval-real-abcd-agreed`, `eval-real-tweets`) with the three files copied into the run directory.
+GPU: about 23 min (14 min of it a pod created without the template, which never started), ≈ $2.1.
+Anthropic judge: ABCD 600 requests (161k in / 30k out), tweets 800 requests (224k in / 82k out).

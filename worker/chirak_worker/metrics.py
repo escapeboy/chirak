@@ -23,6 +23,7 @@ def compute_metrics(spec: TaskSpec, rows: list[dict]) -> dict:
     failures = []
     exact = valid = 0
     field_ok = {f.name: 0 for f in spec.fields}
+    field_n = {f.name: 0 for f in spec.fields}  # a field missing from the expected output is not scored
 
     for r in rows:
         exp, got = r["expected"], r["got"]
@@ -31,8 +32,11 @@ def compute_metrics(spec: TaskSpec, rows: list[dict]) -> dict:
         if got is not None:
             valid += 1
             for f in spec.fields:
-                field_ok[f.name] += got[f.name] == exp[f.name]
-            exact += all(got[f.name] == exp[f.name] for f in spec.fields)
+                if f.name in exp:
+                    field_ok[f.name] += got[f.name] == exp[f.name]
+            exact += all(got[f.name] == exp[f.name] for f in spec.fields if f.name in exp)
+        for f in spec.fields:
+            field_n[f.name] += f.name in exp
         if pred != exp[primary]:
             failures.append({k: r[k] for k in ("id", "input", "expected", "got", "raw", "error")})
 
@@ -59,7 +63,7 @@ def compute_metrics(spec: TaskSpec, rows: list[dict]) -> dict:
         "macro_f1": round(sum(supported) / len(supported), 4) if supported else 0.0,
         "per_class": per_class,
         "confusion": {"labels": labels, "matrix": matrix},
-        "fields": {k: {"accuracy": round(v / div, 4)} for k, v in field_ok.items()},
+        "fields": {k: {"accuracy": round(v / field_n[k], 4)} for k, v in field_ok.items() if field_n[k]},
         "exact_match": round(exact / div, 4),
         "latency_ms": {"p50": round(percentile(lat, 50)), "p95": round(percentile(lat, 95))},
         "failures": failures,

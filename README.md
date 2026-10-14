@@ -45,6 +45,21 @@ iterations and serves iteration 2. The weak class is *complaints* (F1 0.67), mos
 guidance sometimes describes those failures closely, and the train data moved slightly closer to
 eval-hard (no train ticket reaches cosine 0.90). Read the +1.9 pt of iteration 2 with that in mind.
 
+### On text written by people
+
+The clean and hard slices are both synthetic. Two public datasets with human-written text were added
+afterwards and frozen before scoring ([details](docs/demo-run-log.md#real-text-checks-2026-10-14)):
+
+| Category, base → iteration 2 | n | accuracy | macro-F1 |
+|---|---|---|---|
+| ABCD chats with an online store, labels from the writer's scenario (MIT) | 300 | 0.74 → 0.80 | 0.74 → 0.81 |
+| Real tweets to Amazon, Target, M&S, eBay, Argos (2017), labels from a Claude judge | 357 | 0.72 → 0.75 | 0.69 → 0.71 |
+
+The adapter still helps on real text, but far less than the synthetic slices suggest, and on real
+tweets both models sit around 0.7. On tweets needs_human got worse (0.84 → 0.73). Most errors are
+shipping vs orders vs complaints, which the task's guidelines leave open. English only: no public
+Bulgarian support-ticket data was found.
+
 5 hold-out tickets that are in no dataset file (written by Claude at the owner's request, not by a
 human), all three fields right: base 2/5, iteration 2 5/5 — a spot check, not a metric. Two earlier
 demo runs were discarded at the human checkpoint before any training; the log says why.
@@ -143,7 +158,7 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
 | `worker/` | FastAPI GPU worker: generate, train, evaluate, serve, predict ([README](worker/README.md)) |
 | `app/` | Laravel control plane: wizard, dashboard, playground, public report ([README](app/README.md)) |
 | `spike/` | Environment checks, pinned versions, pod bootstrap |
-| `demo/` | Seed tickets of the demo task, the video recording script, the static report export |
+| `demo/` | Seed tickets of the demo task, real-text eval builders (`real/`), the video recording script, the static report export |
 | `docs/` | Worker API contract, run log, RunPod notes, screenshots |
 
 ## License

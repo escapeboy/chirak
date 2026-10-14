@@ -72,6 +72,18 @@ def test_macro_f1_includes_predicted_classes_without_support(spec_dict):
     assert m["macro_f1"] == round((0.6667 + 1.0 + 0.0) / 3, 4)
 
 
+def test_fields_missing_from_expected_are_not_scored(spec_dict):
+    s = spec(spec_dict)
+    # an eval with category labels only (e.g. built from an external dataset)
+    rows = [row(1, {"category": "orders"}, {"category": "orders", "urgent": True}),
+            row(2, {"category": "returns"}, {"category": "orders", "urgent": False}),
+            row(3, {"category": "orders", "urgent": False}, {"category": "orders", "urgent": True})]
+    m = compute_metrics(s, rows)
+    assert m["accuracy"] == round(2 / 3, 4)
+    assert m["exact_match"] == round(1 / 3, 4)
+    assert m["fields"] == {"category": {"accuracy": round(2 / 3, 4)}, "urgent": {"accuracy": 0.0}}
+
+
 def test_percentile_nearest_rank():
     assert percentile([10, 20, 30, 40], 50) == 20
     assert percentile([10, 20, 30, 40], 95) == 40

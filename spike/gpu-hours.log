@@ -16,3 +16,7 @@
 2026-10-13T21:08:35Z STOP 0d23ljhj8ofgn6 (Task 3/4 done; artifacts copied to chirak-artifacts/mi350-2026-10-13-pod4; volume kept)
 2026-10-14T05:44:00Z RESUME 0d23ljhj8ofgn6 (demo video: live playground with iter-2)
 2026-10-14T05:55:14Z TERMINATE 0d23ljhj8ofgn6 (video recorded; all run artifacts in chirak-artifacts/mi350-2026-10-13-pod4)
+2026-10-14T09:41:06Z START zlqij4ciyhw3a7 MI350X $5.49/h (real-text evals: ABCD + TwCS)
+2026-10-14T09:54:56Z TERMINATE zlqij4ciyhw3a7 (created without the template: entrypoint ignored, container restart loop; no data)
+2026-10-14T09:54:58Z START jtfuv25iw9vy2v MI350X $5.49/h (real-text evals, template 8syzxxdnn2)
+2026-10-14T10:04:08Z TERMINATE jtfuv25iw9vy2v (real-text evals done; results in chirak-artifacts/real-evals-2026-10-14)
