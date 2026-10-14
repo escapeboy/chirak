@@ -20,3 +20,4 @@
 2026-10-14T09:54:56Z TERMINATE zlqij4ciyhw3a7 (created without the template: entrypoint ignored, container restart loop; no data)
 2026-10-14T09:54:58Z START jtfuv25iw9vy2v MI350X $5.49/h (real-text evals, template 8syzxxdnn2)
 2026-10-14T10:04:08Z TERMINATE jtfuv25iw9vy2v (real-text evals done; results in chirak-artifacts/real-evals-2026-10-14)
+2026-10-14T10:17:14Z START 1pt556bl9350ny MI350X $5.49/h (R1/R2: runs with guidelines v2 and real train text)

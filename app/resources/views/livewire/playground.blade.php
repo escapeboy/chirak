@@ -3,6 +3,9 @@
         <a href="{{ route('runs.show', $run) }}" class="text-sm text-slate-500 hover:text-brand-600">&larr; {{ $run->name }}</a>
         <h1 class="mt-1 text-2xl font-bold tracking-tight">Playground</h1>
         <p class="text-sm text-slate-500">Send one input to the base model and to the tuned adapter and compare the answers.</p>
+        @if (config('chirak.playground_note'))
+            <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ config('chirak.playground_note') }}</p>
+        @endif
     </div>
 
     <div class="card mb-6 space-y-4">

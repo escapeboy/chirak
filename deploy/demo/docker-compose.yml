@@ -1,0 +1,48 @@
+# Public read-only demo on a CPU host (fleetq-01): stored reports + a playground served by llama.cpp.
+# No GPU, no new runs. See deploy/demo/README.md.
+name: chirak
+
+x-llama: &llama
+  image: ghcr.io/ggml-org/llama.cpp:server-b11429   # same build as the local eval (brew llama.cpp 0.6.0, build 11429)
+  restart: unless-stopped
+  cpus: 2
+  mem_limit: 6g
+  volumes: [./models:/models:ro]
+  networks: [internal]
+
+services:
+  llama-base:
+    <<: *llama
+    command: ["-m", "/models/base.q8_0.gguf", "--host", "0.0.0.0", "--port", "8080", "-t", "2", "-c", "4096", "-np", "1", "--jinja"]
+
+  llama-tuned:
+    <<: *llama
+    command: ["-m", "/models/${TUNED_GGUF}", "--host", "0.0.0.0", "--port", "8080", "-t", "2", "-c", "4096", "-np", "1", "--jinja"]
+
+  predict:
+    build: {context: ../.., dockerfile: deploy/demo/Dockerfile.predict}
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    environment:
+      CPU_MODELS: "base=http://llama-base:8080,${SERVED_NAME}=http://llama-tuned:8080"
+      WORKER_BEARER_TOKEN: ${WORKER_BEARER_TOKEN}
+    networks: [internal]
+
+  app:
+    build: {context: ../.., dockerfile: deploy/demo/Dockerfile.app}
+    container_name: chirak-web
+    restart: unless-stopped
+    cpus: 1
+    mem_limit: 1g
+    env_file: .env
+    environment:
+      WORKER_BASE_URL: http://predict:8100
+    volumes: [./data:/data]
+    networks: [internal, proxy]
+
+networks:
+  internal: {}
+  proxy:
+    # the shared nginx-proxy joins this network; TRUSTED_PROXIES in .env is its subnet
+    ipam: {config: [{subnet: 10.231.7.0/24}]}

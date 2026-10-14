@@ -50,6 +50,11 @@ class CreateRun extends Component
 
     public function start()
     {
+        if (config('chirak.readonly')) {
+            $this->addError('token', 'This is a read-only demo without a GPU: new runs cannot be started here.');
+
+            return null;
+        }
         if (! DemoToken::unlocked()) {
             $this->addError('token', 'Enter the demo token (top right) to start a run.');
 
@@ -61,7 +66,7 @@ class CreateRun extends Component
             'description' => 'required|string|max:2000',
             'languages' => 'required|string|max:60',
             'guidelines' => 'nullable|string|max:5000',
-            'targetMetric' => 'required|in:macro_f1,accuracy',
+            'targetMetric' => 'required|in:macro_f1,accuracy,exact_match',
             'targetValue' => 'required|numeric|between:0.05,1',
             'evalN' => 'required|integer|between:20,1000',
             'trainN' => 'required|integer|between:100,5000',

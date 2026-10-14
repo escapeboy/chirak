@@ -16,9 +16,18 @@ class TaskTemplate
                 ['name' => 'urgency', 'type' => 'enum', 'values' => ['low', 'normal', 'high']],
                 ['name' => 'needs_human', 'type' => 'bool'],
             ],
-            'guidelines' => "category: the main topic of the ticket. If several topics appear, pick the one the customer wants solved first.\n"
-                .'urgency: high when money is lost, a deadline is missed or the customer threatens to leave; low for plain questions. '
-                .'needs_human: true when a person must decide (refunds, complaints, anything legal).',
+            // v2 (14 Oct 2026): written after the real-text checks, where most errors were shipping vs
+            // orders vs complaints and needs_human; see docs/demo-run-log.md.
+            'guidelines' => "category: the concrete problem the customer wants solved. Tone does not decide the category: an angry message about a late parcel is shipping.\n"
+                ."- orders: placing, changing or cancelling an order and its items before it ships; wrong contents or quantity in the order confirmation.\n"
+                ."- shipping: everything after dispatch and about delivery: where is my parcel, delays, tracking, couriers, delivery address or date, parcels marked delivered but not received, delivery options and their cost.\n"
+                ."- returns: sending an item back, exchanges, a wrong, damaged or faulty item received, and the refund for a returned item.\n"
+                ."- payments: charges, double or wrong charges, failed payments, payment methods, promo codes, prices, invoices, gift cards, refunds not tied to a return.\n"
+                ."- product_questions: questions about a product or its availability before buying: specs, sizes, compatibility, stock.\n"
+                ."- complaints: the complaint itself is the point: rude staff or couriers, support that does not answer, poor service, threats to report the shop or take legal steps, with no concrete order, delivery, return or payment problem to fix.\n"
+                ."- other: account access and settings, data and privacy requests, website problems, partnerships, praise, anything else.\n"
+                ."urgency: high when money is lost or wrongly charged, a deadline the customer names is at risk, the account is compromised, or the customer threatens to leave, report or sue; low for questions before buying, praise and general information; normal otherwise.\n"
+                ."needs_human: true when a person must decide or act beyond a standard answer: refunds and compensation, wrong or damaged items, wrong charges, complaints, legal or privacy requests, account security. False for status questions, product questions and how-to questions.",
         ];
     }
 
@@ -26,8 +35,8 @@ class TaskTemplate
     {
         return [
             self::item('Здравейте, поръчка 4821 още не е пристигнала, а куриерът каза, че ще е вчера.', 'shipping', 'normal', false),
-            self::item('Can I change the delivery address of order 1177? I typed the wrong street.', 'orders', 'high', false),
-            self::item('Получих счупена чаша. Искам парите си обратно, иначе ще подам жалба.', 'complaints', 'high', true),
+            self::item('Can I change the delivery address of order 1177? I typed the wrong street.', 'shipping', 'high', false),
+            self::item('Получих счупена чаша. Искам парите си обратно, иначе ще подам жалба.', 'returns', 'high', true),
             self::item('Does the blue jacket come in size XL and is it waterproof?', 'product_questions', 'low', false),
             self::item('Платих два пъти с карта за една и съща поръчка, моля върнете единия път.', 'payments', 'high', true),
             self::item('How do I send back the shoes? They are too small.', 'returns', 'normal', false),

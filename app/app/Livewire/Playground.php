@@ -7,6 +7,7 @@ use App\Services\Worker\WorkerClient;
 use App\Services\Worker\WorkerRejected;
 use App\Services\Worker\WorkerUnreachable;
 use App\Support\DemoToken;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Component;
 
 class Playground extends Component
@@ -38,6 +39,14 @@ class Playground extends Component
 
         $this->validate(['input' => 'required|string|max:4000']);
         $this->reset('base', 'adapter', 'notice', 'offline');
+
+        $key = 'playground:'.request()->ip();
+        if (RateLimiter::tooManyAttempts($key, config('chirak.playground_per_minute'))) {
+            $this->notice = 'Too many requests from your address. Try again in '.RateLimiter::availableIn($key).' s.';
+
+            return;
+        }
+        RateLimiter::hit($key, 60);
 
         try {
             $this->base = $worker->predict('base', $this->run->task_spec, $this->input);

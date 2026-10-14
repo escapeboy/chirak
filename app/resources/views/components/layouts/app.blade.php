@@ -14,7 +14,9 @@
             <span class="hidden text-sm text-slate-500 sm:inline">task description in, fine-tuned small model out</span>
         </a>
         <div class="flex items-center gap-3">
-            <a href="{{ route('runs.create') }}" class="text-sm font-medium text-slate-700 hover:text-brand-600">New run</a>
+            @unless (config('chirak.readonly'))
+                <a href="{{ route('runs.create') }}" class="text-sm font-medium text-slate-700 hover:text-brand-600">New run</a>
+            @endunless
             @if (App\Support\DemoToken::unlocked())
                 <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">demo token accepted</span>
             @else

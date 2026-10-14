@@ -275,8 +275,10 @@ class RunPipeline
             case 'train':
                 $config = [
                     'run_id' => $run->slug, 'iteration' => $i,
+                    // real labelled tickets (purpose train-real) go into every iteration next to the synthetic files
                     'train_files' => $run->datasets()->where('purpose', 'train')->where('iteration', '<=', $i)
-                        ->orderBy('iteration')->pluck('remote_path')->all(),
+                        ->orderBy('iteration')->pluck('remote_path')
+                        ->merge($run->datasets()->where('purpose', 'train-real')->pluck('remote_path'))->all(),
                     'base_model' => $run->base_model, 'lora' => self::LORA, 'epochs' => 2, 'lr' => 0.0002, 'max_seq_len' => 1024,
                 ];
                 Iteration::updateOrCreate(

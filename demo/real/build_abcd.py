@@ -4,7 +4,8 @@ The label is the scenario the writer was given (flow/subflow), mapped to the dem
 ABCD has no urgency or needs_human, so only category is labelled (the worker scores only the fields
 present in the expected output). Only the dev and test splits are used.
 
-Usage: python3 -I build_abcd.py <abcd_v1.1.json.gz> <out.jsonl> [per_class=50]
+Usage: python3 -I build_abcd.py <abcd_v1.1.json.gz> <out.jsonl> [per_class=50] [splits=dev,test]
+(The train split is only for training data, R2; dev and test are the eval.)
 Source: https://github.com/asappresearch/abcd (data/abcd_v1.1.json.gz)
 """
 import gzip
@@ -61,11 +62,11 @@ def opening(convo: dict) -> str:
     return re.sub(r"\s+", " ", " ".join(out)).strip()
 
 
-def main(src: str, dst: str, per_class: int = 50) -> None:
+def main(src: str, dst: str, per_class: int = 50, splits: str = "dev,test") -> None:
     data = json.load(gzip.open(src))
     pool: dict[str, list[dict]] = {}
     seen = set()
-    for split in ("dev", "test"):
+    for split in splits.split(","):
         for c in data[split]:
             cat = category(c["scenario"])
             text = opening(c)
@@ -82,10 +83,10 @@ def main(src: str, dst: str, per_class: int = 50) -> None:
     rng.shuffle(rows)
     with open(dst, "w") as f:
         for i, r in enumerate(rows, 1):
-            f.write(json.dumps({"id": f"abcd-{i:04d}", **r}, ensure_ascii=False) + "\n")
+            f.write(json.dumps({"id": f"abcd-{'-'.join(splits.split(','))}-{i:04d}" if splits != "dev,test" else f"abcd-{i:04d}", **r}, ensure_ascii=False) + "\n")
     print(json.dumps({"n": len(rows), "pool": {k: len(v) for k, v in sorted(pool.items())},
                       "per_class": {k: min(per_class, len(v)) for k, v in sorted(pool.items())}}))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], *(int(a) for a in sys.argv[3:]))
+    main(sys.argv[1], sys.argv[2], *(int(a) for a in sys.argv[3:4]), *sys.argv[4:5])

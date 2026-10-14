@@ -15,6 +15,12 @@ return [
 
     'demo_token' => env('DEMO_TOKEN'),
 
+    // Public demo without a GPU worker: stored reports and the playground only, no new runs.
+    // playground_note says what serves the playground there (e.g. the CPU build of the adapter).
+    'readonly' => (bool) env('CHIRAK_READONLY', false),
+    'playground_note' => env('CHIRAK_PLAYGROUND_NOTE'),
+    'playground_per_minute' => (int) env('CHIRAK_PLAYGROUND_PER_MINUTE', 20),
+
     'stop' => [
         'max_iterations' => 3,
         'min_gain' => 0.01,

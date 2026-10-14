@@ -5,7 +5,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Runs</h1>
             <p class="text-sm text-slate-500">Each run turns a task description and a few examples into a LoRA-tuned small model.</p>
         </div>
-        <a href="{{ route('runs.create') }}" class="btn">New run</a>
+        @unless (config('chirak.readonly'))<a href="{{ route('runs.create') }}" class="btn">New run</a>@endunless
     </div>
 
     <div class="card !p-0 overflow-hidden">

@@ -1,0 +1,10 @@
+*
+!app
+!deploy/demo/entrypoint.sh
+app/vendor
+app/node_modules
+app/storage
+app/public/build
+app/public/hot
+app/.env
+app/database/*.sqlite
