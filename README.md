@@ -11,7 +11,7 @@ track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, 
 ![Public report of the demo run](docs/img/report.png)
 
 **Live demo: https://chirak.fleetq.net** — stored run reports and a playground that answers on CPU
-(read-only: no GPU there, so no new runs; the playground needs the demo token).
+(read-only: no GPU there, so no new runs; the playground is open to everyone, a few compares a minute).
 
 Demo video (2.5 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
 Playwright script ([demo/video/](demo/video/)) with captions and a synthetic voice (Kokoro, local
