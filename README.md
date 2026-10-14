@@ -15,7 +15,8 @@ track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, 
 
 Demo video (2 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
 Playwright script ([demo/video/](demo/video/)) with a synthetic voice (macOS `say`) and captions. The
-playground answers in it are live calls to the iteration-2 adapter on an MI350X.
+playground answers in it are live calls to the iteration-2 adapter on an MI350X. It shows run 4,
+before guidelines v2 and the real-text work below.
 
 ## Where it stands (14 Oct 2026)
 

@@ -104,7 +104,7 @@
         <tr><td>+ LoRA, iteration 2 (served)</td><td><b>0.98</b></td><td><b>0.84</b></td></tr>
         <tr><td>+ LoRA, iteration 3</td><td>0.98</td><td>0.83</td></tr>
       </table>
-      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored. On human-written text the gain is smaller: ABCD store chats 0.74 → 0.80 accuracy, real retail tweets 0.72 → 0.75.</p>
+      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored. On human-written text the gain is smaller; run 6 (clearer guidelines + real chats in training) gets all three fields right on 0.59 of real retail tweets (base 0.29). Live: chirak.fleetq.net</p>
     </div>
     <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
   </div>
@@ -152,7 +152,7 @@
   <div class="kicker">Next</div>
   <h2>Next steps</h2>
   <ul>
-    <li><b>Human-labelled evals:</b> the hard slice exists, but its labels come from a Claude judge and Claude Code; real tickets labelled by people are next. Complaints (F1 0.67) are the class to fix.</li>
+    <li><b>Human-labelled evals:</b> the hard slice, the real-tweet set and the own-ticket flow exist, but their labels come from a Claude judge and Claude Code; Bulgarian tickets labelled by people are next.</li>
     <li><b>Extraction tasks:</b> order numbers, products, amounts, not only classification.</li>
     <li><b>Multi-tenant runs</b> on a shared GPU with a queue, and adapters per merchant.</li>
     <li><b>Preference tuning (DPO)</b> once a classification adapter exists.</li>
