@@ -2,8 +2,14 @@
 
 Status (14 Oct 2026, evening): **R1–R4 done**; results in [demo-run-log.md](demo-run-log.md).
 R3 follow-ups done the same evening: deleting the tickets also deletes the worker's copy (`DELETE /runs/{id}/own`),
-and the owner can approve up to 5 examples for the public report. **Not done: R3.6** (part of the uploaded
-tickets as training data); it needs a GPU run to show any effect and is left for after the hackathon.
+and the owner can approve up to 5 examples for the public report. **R3.6 built (15 Oct, code + tests, no GPU
+run):** at upload the owner sets aside 0/20/30/50% of the tickets for training (deterministic split before any
+labelling); at freeze, training tickets that repeat an eval ticket or share a word 8-gram with one are dropped and
+counted; "Train a new run with these tickets" starts a follow-up run with the same task, seeds and target, the
+training part as its train-real data (put on the worker by the pipeline) and the same frozen eval-own slice
+(same sha256). Deleting the tickets also deletes the follow-up run's copies, locally and on the worker, and is
+refused while the follow-up still trains. Not measured on a GPU: the only real tickets we have that are not
+already in training are the TwCS tweets, which stay evaluation-only (CC BY-NC-SA).
 Open questions were settled by default after the owner said to do all four: Claude Code wrote the
 guidelines; R2 uses real tickets as training data (in a separate run, so its effect is visible); the
 tweets stay evaluation-only; the demo is at chirak.fleetq.net (owner's choice).
