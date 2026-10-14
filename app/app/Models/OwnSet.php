@@ -13,12 +13,12 @@ class OwnSet extends Model
 
     protected $fillable = [
         'run_id', 'state', 'requests', 'input_tokens', 'output_tokens',
-        'eval_state', 'eval_stage', 'worker_job_id', 'error', 'frozen_at', 'items_deleted_at',
+        'eval_state', 'eval_stage', 'worker_job_id', 'error', 'frozen_at', 'items_deleted_at', 'worker_copy_deleted_at',
     ];
 
     protected function casts(): array
     {
-        return ['frozen_at' => 'datetime', 'items_deleted_at' => 'datetime'];
+        return ['frozen_at' => 'datetime', 'items_deleted_at' => 'datetime', 'worker_copy_deleted_at' => 'datetime'];
     }
 
     public function run(): BelongsTo

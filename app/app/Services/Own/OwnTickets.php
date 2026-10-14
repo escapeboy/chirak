@@ -2,6 +2,7 @@
 
 namespace App\Services\Own;
 
+use App\Jobs\DeleteOwnWorkerCopy;
 use App\Jobs\EvaluateOwnSet;
 use App\Jobs\LabelOwnItem;
 use App\Models\Dataset;
@@ -16,6 +17,8 @@ use InvalidArgumentException;
 /** The lifecycle of a run's own tickets: upload (masked), label, review, freeze, delete. */
 class OwnTickets
 {
+    public const MAX_PUBLIC = 5;
+
     /** @param string[] $texts raw ticket texts; only their masked form is stored */
     public function upload(Run $run, array $texts): OwnSet
     {
@@ -152,9 +155,25 @@ class OwnTickets
                 $dataset->update(['local_path' => null]);
             }
             $set->update(['items_deleted_at' => now()]);
+            DeleteOwnWorkerCopy::dispatch($run->id);
         } else {
             $set->delete();
         }
+    }
+
+    /** Approves or withdraws a labelled ticket as an example on the public report; at most MAX_PUBLIC per run. */
+    public function setPublic(OwnItem $item, bool $public): void
+    {
+        DB::transaction(function () use ($item, $public) {
+            $set = OwnSet::where('run_id', $item->run_id)->lockForUpdate()->first();
+            abort_unless($set?->isFrozen() && ! $set->items_deleted_at, 422, 'Examples can be chosen after the freeze, while the tickets exist.');
+            abort_unless($item->status === OwnItem::LABELLED, 422, 'Only a labelled ticket can be shown.');
+
+            if ($public && ! $item->public && OwnItem::where('run_id', $item->run_id)->where('public', true)->count() >= self::MAX_PUBLIC) {
+                throw new InvalidArgumentException('At most '.self::MAX_PUBLIC.' examples can be shown on the public report. Hide one first.');
+            }
+            $item->update(['public' => $public]);
+        });
     }
 
     private function assertOpen(OwnItem $item): void

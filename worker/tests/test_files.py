@@ -35,3 +35,56 @@ def test_put_file_needs_the_token(settings, services):
     anon = TestClient(create_app(settings, services))
     r = anon.put("/runs/demo-run/files/eval-own.jsonl", content=BODY)
     assert r.status_code == 401 and r.json() == {"detail": "unauthorized"}
+
+
+def _own_run(settings):
+    rdir = settings.runs_dir / "demo-run"
+    (rdir / "evals" / "base.eval-own").mkdir(parents=True)
+    (rdir / "evals" / "demo-iter-1.eval-own").mkdir(parents=True)
+    (rdir / "evals" / "base").mkdir(parents=True)
+    (rdir / "evals" / "base.eval-hard").mkdir(parents=True)
+    for f in ("eval-own.jsonl", "eval.jsonl", "evals/base.eval-own/metrics.json", "evals/demo-iter-1.eval-own/predictions.jsonl",
+              "evals/base/metrics.json", "evals/base.eval-hard/metrics.json"):
+        (rdir / f).write_text("x")
+    return rdir
+
+
+def test_delete_own_removes_the_file_and_the_eval_own_dirs_only(client, settings):
+    rdir = _own_run(settings)
+    r = client.delete("/runs/demo-run/own")
+    assert r.status_code == 200
+    assert sorted(r.json()["deleted"]) == ["eval-own.jsonl", "evals/base.eval-own", "evals/demo-iter-1.eval-own"]
+    assert not (rdir / "eval-own.jsonl").exists()
+    assert not list((rdir / "evals").glob("*.eval-own"))
+    assert (rdir / "eval.jsonl").exists()
+    assert (rdir / "evals" / "base" / "metrics.json").exists()
+    assert (rdir / "evals" / "base.eval-hard" / "metrics.json").exists()
+
+
+def test_delete_own_is_idempotent(client, settings):
+    assert client.delete("/runs/demo-run/own").json() == {"deleted": []}
+    _own_run(settings)
+    assert client.delete("/runs/demo-run/own").status_code == 200
+    r = client.delete("/runs/demo-run/own")
+    assert r.status_code == 200 and r.json() == {"deleted": []}
+
+
+def test_delete_own_does_not_follow_symlinks_out_of_the_run(client, settings, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("x")
+    rdir = settings.runs_dir / "demo-run"
+    (rdir / "evals").mkdir(parents=True)
+    (rdir / "evals" / "evil.eval-own").symlink_to(outside, target_is_directory=True)
+    assert client.delete("/runs/demo-run/own").json() == {"deleted": []}
+    assert (outside / "keep.txt").exists()
+
+
+def test_delete_own_refuses_bad_run_ids(client):
+    assert client.delete("/runs/Bad_Run/own").status_code == 400
+
+
+def test_delete_own_needs_the_token(settings, services):
+    anon = TestClient(create_app(settings, services))
+    r = anon.delete("/runs/demo-run/own")
+    assert r.status_code == 401 and r.json() == {"detail": "unauthorized"}

@@ -101,10 +101,19 @@ class FakeWorker
             $path === '/serve' => Http::response(['name' => $body['name'], 'loaded' => true]),
             $path === '/predict' => Http::response(['raw' => '{"category":"returns"}', 'parsed' => ['category' => 'returns'], 'valid' => true, 'error' => null, 'latency_ms' => 120]),
             $path === '/health' => Http::response(['status' => 'ok', 'gpu' => ['visible' => true, 'name' => 'AMD Instinct MI300X'], 'queue_length' => 0]),
+            $request->method() === 'DELETE' && preg_match('#^/runs/[^/]+/own$#', $path) === 1 => $this->deletedOwn(),
             preg_match('#^/runs/[^/]+/files/([^/]+)$#', $path, $m) === 1 => $this->stored($m[1], $request->body()),
             str_starts_with($path, '/artifacts/') => Http::response("{\"id\":\"x-1\",\"input\":\"Sample ticket\",\"output\":{\"category\":\"orders\"},\"source\":\"synthetic\"}\n"),
             default => Http::response(['detail' => 'not found'], 404),
         };
+    }
+
+    private function deletedOwn()
+    {
+        $deleted = isset($this->files['eval-own.jsonl']) ? ['eval-own.jsonl'] : [];
+        unset($this->files['eval-own.jsonl']);
+
+        return Http::response(['deleted' => $deleted]);
     }
 
     private function stored(string $name, string $content)

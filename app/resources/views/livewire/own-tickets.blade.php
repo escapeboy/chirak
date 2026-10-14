@@ -47,6 +47,9 @@
                 <p class="mt-3 text-xs text-slate-500">
                     Judge usage: {{ number_format($set->requests) }} requests, {{ number_format($set->input_tokens) }} input and {{ number_format($set->output_tokens) }} output tokens.
                     @if ($set->items_deleted_at) The tickets were deleted {{ $set->items_deleted_at->diffForHumans() }}; counts and scores stay. @endif
+                    @if ($set->items_deleted_at)
+                        @if ($set->worker_copy_deleted_at) Worker copy deleted {{ $set->worker_copy_deleted_at->diffForHumans() }}. @else Worker copy: deletion pending. @endif
+                    @endif
                 </p>
                 @if ($set->error)<p class="mt-2 text-sm text-red-700">{{ $set->error }}</p>@endif
 
@@ -66,7 +69,7 @@
                             <button wire:click="evaluate" class="btn-secondary" @disabled(! $unlocked)>Evaluate again</button>
                         @endif
                     @endif
-                    <button wire:click="deleteItems" wire:confirm="Delete the uploaded tickets? Scores and counts stay." class="btn-secondary !text-red-700" @disabled(! $unlocked || $set->items_deleted_at)>Delete the tickets</button>
+                    <button wire:click="deleteItems" wire:confirm="Delete the uploaded tickets and the worker's copy? Scores and counts stay." class="btn-secondary !text-red-700" @disabled(! $unlocked || $set->items_deleted_at)>Delete the tickets</button>
                 </div>
             </div>
 
@@ -102,6 +105,9 @@
                                     <span @class(['rounded px-1.5 py-0.5 text-xs', 'bg-amber-100 text-amber-800' => $item->status === 'unstable', 'bg-slate-100 text-slate-700' => $item->status !== 'unstable'])>
                                         {{ $item->status }}@if ($item->label_source), {{ $item->label_source }}@endif @if ($item->decided_at) {{ $item->decided_at->diffForHumans() }}@endif
                                     </span>
+                                    @if ($set->isFrozen() && $item->status === 'labelled')
+                                        <button wire:click="setPublic({{ $item->id }}, {{ $item->public ? 'false' : 'true' }})" class="btn-secondary !py-1 ml-auto" @disabled(! $unlocked)>{{ $item->public ? 'Shown on public report (hide)' : 'Show on public report' }}</button>
+                                    @endif
                                     @if ($set->state === 'review')
                                         <div class="ml-auto flex gap-2">
                                             @if ($item->status === 'labelled' && $item->label_source === 'judge')<button wire:click="accept({{ $item->id }})" class="btn-secondary !py-1" @disabled(! $unlocked)>Accept</button>@endif

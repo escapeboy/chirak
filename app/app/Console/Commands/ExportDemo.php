@@ -20,7 +20,7 @@ class ExportDemo extends Command
 
     protected $description = 'Export runs into a SQLite database for the read-only demo';
 
-    /** child tables with a run_id column, in insert order; own_items (a shop's own tickets) stay private */
+    /** child tables with a run_id column, in insert order; own_items (a shop's own tickets) stay private except the few the owner approved */
     private const TABLES = ['datasets', 'iterations', 'evaluations', 'decisions', 'holdout_predictions', 'own_sets'];
 
     public function handle(): int
@@ -51,6 +51,10 @@ class ExportDemo extends Command
                 foreach (DB::table($table)->where('run_id', $run->id)->orderBy('id')->get() as $child) {
                     $demo->table($table)->insert((array) $child);
                 }
+            }
+            foreach (DB::table('own_items')->where('run_id', $run->id)->where('public', true)->orderBy('position')
+                ->get(['run_id', 'position', 'text', 'status', 'label', 'label_source', 'public']) as $item) {
+                $demo->table('own_items')->insert((array) $item);
             }
             if (Storage::disk('runs')->exists($run->slug)) {
                 File::copyDirectory(Storage::disk('runs')->path($run->slug), "$dir/storage/app/runs/{$run->slug}");

@@ -12,11 +12,11 @@ class OwnItem extends Model
     public const UNSTABLE = 'unstable';
     public const DROPPED = 'dropped';
 
-    protected $fillable = ['run_id', 'position', 'text', 'status', 'passes', 'label', 'label_source', 'decided_at'];
+    protected $fillable = ['run_id', 'position', 'text', 'status', 'passes', 'label', 'label_source', 'public', 'decided_at'];
 
     protected function casts(): array
     {
-        return ['passes' => 'array', 'label' => 'array', 'decided_at' => 'datetime'];
+        return ['passes' => 'array', 'label' => 'array', 'public' => 'boolean', 'decided_at' => 'datetime'];
     }
 
     public function run(): BelongsTo
