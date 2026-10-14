@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Merchant ticket triage (BG/EN) report - Chirak</title>
+    <title>Merchant ticket triage (BG/EN), guidelines v2 + real tickets (ABCD train) report - Chirak</title>
     <link rel="preload" as="style" href="assets/app-CzdTzTMW.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-CzdTzTMW.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
 <body class="min-h-full font-sans text-slate-900 antialiased">
 <header class="border-b border-slate-200 bg-white">
@@ -17,60 +17,20 @@
     </header>
 
 <main class="mx-auto max-w-6xl px-4 py-8">
-<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Newer runs and a live CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of run 4, generated 14 Oct 2026 from the stored results of run <code>merchant-triage-g4oirl</code>. The live playground and new runs need the GPU worker, so they are not part of this page. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 6 (<code>merchant-triage-orv1o6</code>), generated 14 Oct 2026 from its stored results. Runs: <strong>Run 6</strong> · <a class="underline" href="run-5b.html">Run 5b</a> · <a class="underline" href="run-5.html">Run 5</a> · <a class="underline" href="run-4.html">Run 4</a>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
     <div class="mb-6">
         <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-bold tracking-tight">Merchant ticket triage (BG/EN)</h1>
+            <h1 class="text-2xl font-bold tracking-tight">Merchant ticket triage (BG/EN), guidelines v2 + real tickets (ABCD train)</h1>
             <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700">completed</span>
         </div>
         <p class="mt-1 text-sm text-slate-500">Triage incoming customer-support tickets of an online shop. Public, read-only report built from the stored results.</p>
                     </div>
 
-            
-        <div class="mb-6 grid gap-4 sm:grid-cols-2">
-                            <div class="card">
-                    <div class="text-sm text-slate-500">Clean slice: macro-f1</div>
-                    <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                                                    <div>
-                                <div class="text-xs text-slate-500">Base model</div>
-                                <div class="text-2xl font-bold">84.1%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 1</div>
-                                <div class="text-2xl font-bold">99.1%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 2</div>
-                                <div class="text-2xl font-bold text-emerald-700">98.2%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 3</div>
-                                <div class="text-2xl font-bold">98.1%</div>
-                            </div>
-                                            </div>
-                </div>
-                            <div class="card">
-                    <div class="text-sm text-slate-500">Hard slice: macro-f1</div>
-                    <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                                                    <div>
-                                <div class="text-xs text-slate-500">Base model</div>
-                                <div class="text-2xl font-bold">77.2%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 1</div>
-                                <div class="text-2xl font-bold">82.5%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 2</div>
-                                <div class="text-2xl font-bold text-emerald-700">84.4%</div>
-                            </div>
-                                                    <div>
-                                <div class="text-xs text-slate-500">Iteration 3</div>
-                                <div class="text-2xl font-bold">83.3%</div>
-                            </div>
-                                            </div>
-                </div>
-                    </div>
+            <div class="mb-6 grid gap-4 sm:grid-cols-3">
+            <div class="card"><div class="text-sm text-slate-500">Baseline exact-match</div><div class="text-3xl font-bold">65.1%</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Final exact-match</div><div class="text-3xl font-bold">92.6%</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Change</div><div class="text-3xl font-bold">+27.4 pts</div></div>
+        </div>
     
     <div class="space-y-6">
         <div class="card">
@@ -78,115 +38,66 @@
             <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200">
                 <thead><tr>
-                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1 (clean)</th>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
                     <th class="th">JSON validity</th><th class="th">Exact match</th>
-                    <th class="th">Macro-F1 (hard)</th><th class="th">Exact match (hard)</th>                </tr></thead>
+                                    </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                                     <tr class="">
                         <td class="td font-medium">Baseline (base model) </td>
-                        <td class="td">84.7%</td>
-                        <td class="td">84.1%</td>
+                        <td class="td">91.6%</td>
+                        <td class="td">91.7%</td>
                         <td class="td">100.0%</td>
-                        <td class="td">59.5%</td>
-                        <td class="td">77.2%</td><td class="td">58.8%</td>                    </tr>
+                        <td class="td">65.1%</td>
+                                            </tr>
                                     <tr class="">
                         <td class="td font-medium">Iteration 1 </td>
-                        <td class="td">99.1%</td>
-                        <td class="td">99.1%</td>
+                        <td class="td">96.3%</td>
+                        <td class="td">96.2%</td>
                         <td class="td">100.0%</td>
                         <td class="td">90.7%</td>
-                        <td class="td">82.5%</td><td class="td">65.6%</td>                    </tr>
+                                            </tr>
                                     <tr class="bg-emerald-50/50">
                         <td class="td font-medium">Iteration 2 <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">served</span></td>
-                        <td class="td">98.1%</td>
-                        <td class="td">98.2%</td>
+                        <td class="td">97.7%</td>
+                        <td class="td">97.7%</td>
                         <td class="td">100.0%</td>
-                        <td class="td">90.2%</td>
-                        <td class="td">84.4%</td><td class="td">66.4%</td>                    </tr>
-                                    <tr class="">
-                        <td class="td font-medium">Iteration 3 </td>
-                        <td class="td">98.1%</td>
-                        <td class="td">98.1%</td>
-                        <td class="td">100.0%</td>
-                        <td class="td">90.2%</td>
-                        <td class="td">83.3%</td><td class="td">65.6%</td>                    </tr>
+                        <td class="td">92.6%</td>
+                                            </tr>
                                 </tbody>
             </table>
         </div>
         <p class="mt-3 text-sm text-slate-500">
-            Target: macro-f1 at least 92%.
-             Measured on the hard slice.              Stopped: reached the maximum of 3 iterations.         </p>
-                    <p class="mt-2 text-sm text-slate-600">
-                Two eval slices. <span class="font-medium">Clean</span>: tickets where two readings by the generator agree on the label (the label it was written for and its own blind re-label); 215 tickets, the original frozen eval.
-                <span class="font-medium">Hard</span>: tickets the blind label check rejected; 119 tickets, labelled by the Claude judge where it agreed with the intended label (14), otherwise
-                 by Claude Code on the owner's delegation, not by a human                 (105). sha256 <span class="font-mono">c5997a472e7b…</span>
-            </p>
+            Target: exact-match at least 92%.
+                         Stopped: target met (0.926 &gt;= 0.920).         </p>
             </div>
-        <div class="card">
-    <h2 class="card-title">Held-out examples</h2>
+                <div class="card">
+    <h2 class="card-title">Own tickets</h2>
     <p class="mb-3 text-sm text-slate-500">
-        5 tickets kept out of every dataset file, sent to the base model and to the served adapter (iteration 2) through the playground's /predict.
-        They were written by Claude at the owner's request, not by a human.
+        146 of the shop's own tickets, masked and frozen as a separate slice. Labels: 128 by the Claude judge, 0 by a person
+                    and 18 by Claude Code on the owner's delegation (not a person)
+                 (4 dropped in review). The tickets themselves are private to the run owner.
     </p>
             <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead><tr><th class="th">Ticket</th><th class="th">Expected</th><th class="th">Base model</th><th class="th">Adapter</th></tr></thead>
-            <tbody class="divide-y divide-slate-100">
-                            <tr>
-                    <td class="td max-w-md whitespace-normal">Tracking says &#039;returned to sender&#039; but nobody ever tried to deliver or called me. I still want the package.</td>
-                    <td class="td">shipping / normal / true</td>
-                                                                    <td class="td text-red-700">
-                            shipping / high / true
-                        </td>
-                                                                    <td class="td text-emerald-700">
-                            shipping / normal / true
-                        </td>
-                                    </tr>
-                            <tr>
-                    <td class="td max-w-md whitespace-normal">Купих с код за -15%, но ме таксувахте с пълната цена. Може ли да ми върнете разликата?</td>
-                    <td class="td">payments / normal / true</td>
-                                                                    <td class="td text-red-700">
-                            payments / high / true
-                        </td>
-                                                                    <td class="td text-emerald-700">
-                            payments / normal / true
-                        </td>
-                                    </tr>
-                            <tr>
-                    <td class="td max-w-md whitespace-normal">Поръчах калъф за iPhone, получих за Samsung. Second time this happens, honestly my last order from you.</td>
-                    <td class="td">complaints / high / true</td>
-                                                                    <td class="td text-emerald-700">
-                            complaints / high / true
-                        </td>
-                                                                    <td class="td text-emerald-700">
-                            complaints / high / true
-                        </td>
-                                    </tr>
-                            <tr>
-                    <td class="td max-w-md whitespace-normal">Is the stroller suitable from birth or only from 6 months? Does it fit in a small car boot?</td>
-                    <td class="td">product_questions / low / false</td>
-                                                                    <td class="td text-emerald-700">
-                            product_questions / low / false
-                        </td>
-                                                                    <td class="td text-emerald-700">
-                            product_questions / low / false
-                        </td>
-                                    </tr>
-                            <tr>
-                    <td class="td max-w-md whitespace-normal">Имате ли физически магазин в Пловдив, където да видя продуктите на живо?</td>
-                    <td class="td">other / low / false</td>
-                                                                    <td class="td text-red-700">
-                            product_questions / low / false
-                        </td>
-                                                                    <td class="td text-emerald-700">
-                            other / low / false
-                        </td>
-                                    </tr>
-                        </tbody>
-        </table>
-    </div>
-    <p class="mt-2 text-xs text-slate-500">Labels: category / urgency / needs_human. Green: equals the expected label in all fields.</p>
-</div>
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead><tr>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
+                    <th class="th">category</th><th class="th">urgency</th><th class="th">needs_human</th>                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr>
+                        <td class="td font-medium">Base model</td>
+                        <td class="td">67.8%</td>
+                        <td class="td">58.5%</td>
+                        <td class="td">67.8%</td><td class="td">47.9%</td><td class="td">76.7%</td>                    </tr>
+                                    <tr>
+                        <td class="td font-medium">Served adapter (iteration 2)</td>
+                        <td class="td">71.2%</td>
+                        <td class="td">60.2%</td>
+                        <td class="td">71.2%</td><td class="td">80.1%</td><td class="td">85.6%</td>                    </tr>
+                                </tbody>
+            </table>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Accuracy is on the primary field; the field columns are the accuracy of each field on its own.</p>
+        </div>
         <div class="card">
     <h2 class="card-title">Per-class results, baseline vs iteration 2</h2>
             <div class="overflow-x-auto">
@@ -199,79 +110,79 @@
                                     <tr>
                         <td class="td font-medium">orders</td>
                         <td class="td">31</td>
-                        <td class="td">91%</td>
-                        <td class="td">65%</td>
-                        <td class="td">75%</td>
+                        <td class="td">100%</td>
+                        <td class="td">87%</td>
+                        <td class="td">93%</td>
                                                     <td class="td">97%</td>
-                            <td class="td">100%</td>
-                            <td class="td">98%</td>
-                            <td class="td font-medium text-emerald-700">+22.9 pts</td>
+                            <td class="td">94%</td>
+                            <td class="td">95%</td>
+                            <td class="td font-medium text-emerald-700">+2.0 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">shipping</td>
                         <td class="td">31</td>
-                        <td class="td">76%</td>
-                        <td class="td">100%</td>
-                        <td class="td">86%</td>
+                        <td class="td">96%</td>
+                        <td class="td">87%</td>
+                        <td class="td">92%</td>
                                                     <td class="td">97%</td>
-                            <td class="td">97%</td>
-                            <td class="td">97%</td>
-                            <td class="td font-medium text-emerald-700">+10.7 pts</td>
+                            <td class="td">100%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+6.9 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">returns</td>
                         <td class="td">31</td>
-                        <td class="td">94%</td>
-                        <td class="td">94%</td>
-                        <td class="td">94%</td>
+                        <td class="td">100%</td>
+                        <td class="td">100%</td>
+                        <td class="td">100%</td>
                                                     <td class="td">100%</td>
-                            <td class="td">97%</td>
-                            <td class="td">98%</td>
-                            <td class="td font-medium text-emerald-700">+4.8 pts</td>
+                            <td class="td">100%</td>
+                            <td class="td">100%</td>
+                            <td class="td font-medium">+0.0 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">payments</td>
                         <td class="td">31</td>
-                        <td class="td">86%</td>
-                        <td class="td">97%</td>
-                        <td class="td">91%</td>
-                                                    <td class="td">97%</td>
-                            <td class="td">100%</td>
+                        <td class="td">93%</td>
+                        <td class="td">84%</td>
+                        <td class="td">88%</td>
+                                                    <td class="td">100%</td>
+                            <td class="td">97%</td>
                             <td class="td">98%</td>
-                            <td class="td font-medium text-emerald-700">+7.5 pts</td>
+                            <td class="td font-medium text-emerald-700">+10.2 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">product_questions</td>
                         <td class="td">30</td>
-                        <td class="td">78%</td>
+                        <td class="td">76%</td>
                         <td class="td">97%</td>
-                        <td class="td">87%</td>
-                                                    <td class="td">100%</td>
+                        <td class="td">85%</td>
+                                                    <td class="td">97%</td>
                             <td class="td">100%</td>
-                            <td class="td">100%</td>
-                            <td class="td font-medium text-emerald-700">+13.4 pts</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+13.1 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">complaints</td>
-                        <td class="td">31</td>
-                        <td class="td">90%</td>
-                        <td class="td">61%</td>
-                        <td class="td">73%</td>
+                        <td class="td">30</td>
+                        <td class="td">93%</td>
+                        <td class="td">93%</td>
+                        <td class="td">93%</td>
                                                     <td class="td">97%</td>
-                            <td class="td">94%</td>
-                            <td class="td">95%</td>
-                            <td class="td font-medium text-emerald-700">+22.0 pts</td>
+                            <td class="td">97%</td>
+                            <td class="td">97%</td>
+                            <td class="td font-medium text-emerald-700">+3.3 pts</td>
                                             </tr>
                                     <tr>
                         <td class="td font-medium">other</td>
-                        <td class="td">30</td>
-                        <td class="td">86%</td>
-                        <td class="td">80%</td>
-                        <td class="td">83%</td>
-                                                    <td class="td">100%</td>
-                            <td class="td">100%</td>
-                            <td class="td">100%</td>
-                            <td class="td font-medium text-emerald-700">+17.2 pts</td>
+                        <td class="td">31</td>
+                        <td class="td">88%</td>
+                        <td class="td">94%</td>
+                        <td class="td">91%</td>
+                                                    <td class="td">97%</td>
+                            <td class="td">97%</td>
+                            <td class="td">97%</td>
+                            <td class="td font-medium text-emerald-700">+6.2 pts</td>
                                             </tr>
                                 </tbody>
             </table>
@@ -296,15 +207,15 @@
                                     <tr>
                         <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">orders</th>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
-                                style="background-color: rgba(5,150,105,1)">31</td>
+                                style="background-color: rgba(5,150,105,0.94)">29</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0)">0</td>
-                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0)">0</td>
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
@@ -315,9 +226,9 @@
                                     <tr>
                         <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">shipping</th>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
-                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                style="background-color: rgba(5,150,105,1)">31</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
@@ -338,13 +249,13 @@
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
-                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                style="background-color: rgba(5,150,105,1)">31</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
@@ -353,13 +264,13 @@
                                     <tr>
                         <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">payments</th>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0)">0</td>
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
-                                style="background-color: rgba(5,150,105,1)">31</td>
+                                style="background-color: rgba(5,150,105,0.97)">30</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
@@ -393,17 +304,17 @@
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
                                 style="background-color: rgba(5,150,105,0.94)">29</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0)">0</td>
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                             </tr>
@@ -420,7 +331,7 @@
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
                                 style="background-color: rgba(220,38,38,0)">0</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
-                                style="background-color: rgba(220,38,38,0)">0</td>
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-white"
                                 style="background-color: rgba(5,150,105,0.97)">30</td>
                                                                                 <td class="h-9 w-14 border border-white text-center text-slate-800"
@@ -453,9 +364,9 @@
     <h2 class="card-title">Leakage guard and frozen eval set</h2>
             <dl class="mb-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
             <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">215 (200 synthetic + 15 seed)</dd></div>
-            <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">2026-10-13 11:55:39 UTC</dd></div>
-                            <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">564 of 777 eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>
-                        <div class="sm:col-span-2"><dt class="text-slate-500">Eval SHA-256</dt><dd class="break-all font-mono text-xs">6ecec925c3f74820a04becb40f46468ce3630b0ef86985feed53369fbe3c9160</dd></div>
+            <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">2026-10-14 11:06:16 UTC</dd></div>
+                            <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">338 of 549 eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-slate-500">Eval SHA-256</dt><dd class="break-all font-mono text-xs">9c785baa706da25c68a789d16f25796b09563660e15545ca453efb524fb0c08e</dd></div>
         </dl>
     
             <table class="min-w-full divide-y divide-slate-200">
@@ -463,24 +374,17 @@
             <tbody class="divide-y divide-slate-100">
                             <tr>
                     <td class="td">Iteration 1</td>
-                    <td class="td">3923</td>
-                    <td class="td">78</td>
-                    <td class="td">2.0% </td>
-                    <td class="td">2725</td>
+                    <td class="td">3176</td>
+                    <td class="td">129</td>
+                    <td class="td">4.1% </td>
+                    <td class="td">1957</td>
                 </tr>
                             <tr>
                     <td class="td">Iteration 2</td>
-                    <td class="td">3364</td>
-                    <td class="td">84</td>
-                    <td class="td">2.5% </td>
-                    <td class="td">2237</td>
-                </tr>
-                            <tr>
-                    <td class="td">Iteration 3</td>
-                    <td class="td">3050</td>
-                    <td class="td">61</td>
-                    <td class="td">2.0% </td>
-                    <td class="td">1959</td>
+                    <td class="td">3266</td>
+                    <td class="td">144</td>
+                    <td class="td">4.4% </td>
+                    <td class="td">2028</td>
                 </tr>
                         </tbody>
         </table>
@@ -490,59 +394,29 @@
             <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="font-semibold">After iteration 1</span>
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">clean slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
-                    Stop rules: stop, target met (0.991 &gt;= 0.920)
-                </span>
-            </div>
-                            <p class="text-sm text-slate-500">The model was not consulted: the stop rules ended the loop.</p>
-                    </div>
-            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-                <span class="font-semibold">After iteration 1</span>
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
+                                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
                     Stop rules: continue, no stop rule hit
                 </span>
             </div>
                                             <p class="text-sm text-slate-700">
                     <span class="font-medium">claude-sonnet-5-5:</span>
-                    Macro F1 0.825 is below the 0.92 target. The weak classes are complaints (F1 0.55) and other (F1 0.69). Complaints are mislabeled as returns (damaged goods with demands for an escalation or plan) and as other (legal, GDPR, security, contract threats). Other is over-predicted: legit product_questions (wholesale, B2B, legal-sounding) and ordinary topics (shipping, payments) with legal or formal vocabulary fall into it. Payments are confused with complaints and returns when the tone is angry or the subject is a refund, a fee or a subscription. Legal vocabulary in orders and shipping tickets pushes predictions to the wrong category. Tone and keywords are overriding the main topic.
+                    Exact match is 0.907 against a 0.92 target. Category accuracy is high at 0.963 and the remaining errors are boundary confusions. Orders is the weakest class (recall 0.871), mostly confused with payments, shipping, returns and product_questions. Complaints versus other is the second confusable pair, with low-stakes feedback and legal or privacy threats landing on the wrong side. Targeted boundary data should close the gap.
                                             <span class="text-slate-400">(model's own stop opinion: continue, not used)</span>
                                     </p>
                 <ul class="mt-2 space-y-1 text-sm">
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_returns</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Bg and en tickets about damaged or broken goods on arrival, where the customer&#039;s main demand is accountability, an escalation, a formal response, or a compensation plan rather than a standard return or exchange. Contrast them with plain return or exchange requests that stay in returns. Vary the tone, the urgency and the threats to leave.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_other_legal</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Tickets with legal, GDPR, data-privacy, security-breach, contract or arbitration threats about the shop&#039;s conduct or service, labeled complaints with high urgency and needs_human true. Contrast them with true &#039;other&#039; tickets: neutral non-shop topics, minor site or app bugs, cosmetic feedback, partnership or spam messages. Use both bg and en, and vary the formality.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">payments_vs_complaints_returns</span> <span class="text-slate-500">x180</span> <span class="text-slate-600">Angry or neutral tickets whose core issue is money: double charges, unexpected fees, subscription billing, refunds not received after a return, chargeback threats. Label them payments even when the tone is hostile or the ticket mentions returns, shipping or site problems. Include some calm fee-explanation questions with needs_human true. Contrast with complaints about service quality that mention no money problem.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">product_questions_vs_other</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Pre-purchase questions about wholesale or bulk pricing, corporate gift cards, quotes, specs, certifications, and regulatory or warranty validity of products. Label them product_questions, with low urgency, and needs_human true only when legal or regulatory advice is requested. Contrast with truly off-topic &#039;other&#039; tickets. Use bg and en, formal and casual.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">legal_words_orders_shipping</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Orders and shipping tickets that contain legal, corporate or compliance vocabulary, such as a lawyer requesting a delivery confirmation, a company HQ address, freight liability or an invoice discrepancy. The label follows the main topic (address change on an unshipped order -&gt; orders; delivery date or transit liability -&gt; shipping). Set needs_human true only when a person must decide or the matter is legal.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">other_minor_bugs_boundary</span> <span class="text-slate-500">x100</span> <span class="text-slate-600">Low-urgency feedback about site or app glitches, cosmetic issues, checkout freezes that resolved themselves, and general suggestions, labeled other with needs_human false. Contrast them with real complaints about orders or service, which carry real harm and a demand for resolution. Mix bg and en.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">orders_vs_payments_shipping</span> <span class="text-slate-500">x250</span> <span class="text-slate-600">Tickets about modifying or cancelling an order that has not shipped. Include changing the payment method, adding or forgetting a promo code, cancelling right after payment, and changing the delivery address before dispatch. The category is orders when the customer wants the order itself changed or cancelled. Contrast with real payments tickets (wrong or double charge, invoice) and real shipping tickets (parcel already dispatched). Mix Bulgarian and English, calm and angry tones, and include ALL-CAPS messages.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">orders_vs_returns_wrong_quantity</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Wrong contents or quantity in an order, such as fewer or different items than ordered, appearing in the confirmation or in what was shipped. Contrast with returns tickets where the customer wants to send back a faulty or damaged item. Include deadlines and threats to leave a bad review, which set urgency to high. Mix Bulgarian and English.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">orders_vs_product_questions_pre_checkout</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Customers with items in the cart or an unpaid or unplaced order who ask to change the color, size or quantity. Contrast with pure pre-purchase questions about specs, stock or compatibility. Urgency is low in both. Make clear when the request is to edit an order or cart and when it is only a question about a product. Mix Bulgarian and English.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_low_severity_feedback</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Mild, low-urgency feedback with no concrete order to fix, such as excessive packaging, slow replies, an unhelpful or curt agent, or a dented box where the item is fine. These belong to complaints, not other, and are low urgency with needs_human false when the tone is mild. Contrast with praise, which is other, and with real returns tickets for damaged items. Mix Bulgarian and English.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">other_privacy_legal_vs_complaints</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Data, privacy and account requests that include threats of legal action or of reporting to a regulator. Examples include marketing emails after account deletion, GDPR access or erasure requests, and account compromise. The category is other, urgency is high, and needs_human is true. Contrast with complaints about rude staff or non-responsive support that threaten to report the shop but have no data or account issue. Mix Bulgarian and English.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">payments_vs_orders_shipping_regression</span> <span class="text-slate-500">x100</span> <span class="text-slate-600">Balanced regression examples for payments, shipping and returns, kept clearly distinct from orders. Include charges, refunds not tied to a return, invoices, delivery address or date questions for parcels already dispatched, and refunds for returned items. Vary language, tone and formatting so the model does not over-predict orders.</span></li>
                                     </ul>
                     </div>
             <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="font-semibold">After iteration 2</span>
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
-                    Stop rules: continue, no stop rule hit
-                </span>
-            </div>
-                                            <p class="text-sm text-slate-700">
-                    <span class="font-medium">claude-sonnet-5-5:</span>
-                    Macro F1 0.844 is up from 0.825 but still below the 0.92 target. Complaints is the weakest class (recall 0.5, F1 0.67): half of the tickets fall into other (legal, GDPR, data breach, contract threats, and a persistent site-crash frustration case) or into returns, shipping and payments when the damage or demand is strong. Other is over-predicted (precision 0.67), absorbing complaints and product_questions (wholesale and B2B). Shipping, orders and returns are confused when the ticket involves damaged goods in transit, late delivery combined with a return demand, address changes, or legal vocabulary. Payments is confused with shipping and returns when the issue is a fee or a charge. Tone and surface keywords still override the main topic, so more contrastive data on these boundaries is needed. The urgency (0.84) and needs_human fields also have errors, for example urgency inflated by &#039;legal&#039; words and needs_human missed on fee disputes.
-                                            <span class="text-slate-400">(model's own stop opinion: continue, not used)</span>
-                                    </p>
-                <ul class="mt-2 space-y-1 text-sm">
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_other</span> <span class="text-slate-500">x220</span> <span class="text-slate-600">Bg and en tickets where the customer is clearly unhappy with the shop&#039;s service, conduct or platform and wants a person to respond: persistent site or checkout failures causing real frustration, data-protection or GDPR disputes, security concerns, contract or terms disputes, and threats of formal action. Label complaints with needs_human true and urgency matched to deadlines or threats (high when a deadline, money loss or threat to leave is present, otherwise normal). Contrast with genuine other tickets: spam, partnership offers, neutral non-shop topics, one-off minor glitches or suggestions that need no resolution, labeled other with needs_human false. Vary formality and length.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_returns_shipping</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Tickets about goods that arrived broken or late where the customer&#039;s main demand is accountability, escalation, compensation or a threat to leave, labeled complaints. Contrast with tickets in which the main ask is a concrete logistics action: a return or exchange labeled returns, a delivery status or courier problem labeled shipping. The label follows what the customer wants solved first. Include cases that combine damage, courier blame and a request for a supervisor or a refund. Use both languages and vary the tone.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">shipping_vs_orders</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Contrast tickets about changing or correcting an order before dispatch (address fix, item change, cancellation, an order not visible or confirmed in the system) labeled orders, with tickets about transit, delivery dates, lost or delayed parcels, delivery confirmations and courier issues labeled shipping. Include cases with legal, corporate or compliance wording, lawyers or company HQ addresses, where the label still follows the main topic. Include some where payment was made but the order is not shown as dispatched. Set urgency by real deadlines or money loss, not by formal vocabulary. Use bg and en.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">payments_fees_vs_shipping_returns</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Tickets whose core issue is money: unexpected delivery fees or charges on a bill, repeated charges after a return, refunds not received, double charges, billing explanations. Label payments even when delivery, shipping or return words appear. Set needs_human true when a person must decide on a refund, fee reversal or fee explanation. Contrast with shipping tickets about delivery status and returns tickets about how to send goods back. Include angry and calm tones, with threats to involve authorities for the high-urgency cases. Mix bg and en.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">product_questions_b2b_vs_other</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Pre-purchase questions about wholesale or bulk prices, price lists, corporate gift cards, quotes by email, minimum order quantities, product specs and certifications. Label product_questions with low urgency and needs_human false (true only if legal or regulatory advice is requested). Contrast with truly off-topic or spam other tickets. Use bg and en, casual and formal, with business context such as cafes, shops and companies.</span></li>
-                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">urgency_needs_human_calibration</span> <span class="text-slate-500">x90</span> <span class="text-slate-600">Tickets across all categories that test the urgency and needs_human rules. Formal, legal or corporate wording without a deadline or money loss stays at normal urgency. High urgency requires lost money, a missed deadline or a threat to leave. Plain questions are low. needs_human is true for refunds, fee disputes, complaints and legal matters, and false for routine status checks, address fixes and information questions. Use bg and en with a balanced mix of labels.</span></li>
-                                    </ul>
-                    </div>
-            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-                <span class="font-semibold">After iteration 3</span>
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
-                    Stop rules: stop, reached the maximum of 3 iterations
+                                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
+                    Stop rules: stop, target met (0.926 &gt;= 0.920)
                 </span>
             </div>
                             <p class="text-sm text-slate-500">The model was not consulted: the stop rules ended the loop.</p>
@@ -550,8 +424,8 @@
     </div>
         <div class="card">
     <h2 class="card-title">Training loss</h2>
-            <div wire:ignore wire:key="loss-1be0ca85ff3894af7b5ef662dd3f4c68" class="h-64">
-            <canvas data-loss="{&quot;Iteration 1&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.06247365474700928},{&quot;step&quot;:20,&quot;loss&quot;:0.03177624344825745},{&quot;step&quot;:30,&quot;loss&quot;:0.029363104701042177},{&quot;step&quot;:40,&quot;loss&quot;:0.02424766421318054},{&quot;step&quot;:50,&quot;loss&quot;:0.027609029412269594},{&quot;step&quot;:60,&quot;loss&quot;:0.019610844552516937},{&quot;step&quot;:70,&quot;loss&quot;:0.015485771000385284},{&quot;step&quot;:80,&quot;loss&quot;:0.008084337413311004},{&quot;step&quot;:90,&quot;loss&quot;:0.008442186564207078},{&quot;step&quot;:100,&quot;loss&quot;:0.013176006078720093},{&quot;step&quot;:110,&quot;loss&quot;:0.004781015962362289},{&quot;step&quot;:120,&quot;loss&quot;:0.004479680582880974}],&quot;Iteration 2&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.06971840858459473},{&quot;step&quot;:20,&quot;loss&quot;:0.042352098226547244},{&quot;step&quot;:30,&quot;loss&quot;:0.026565942168235778},{&quot;step&quot;:40,&quot;loss&quot;:0.02063277065753937},{&quot;step&quot;:50,&quot;loss&quot;:0.023110780119895934},{&quot;step&quot;:60,&quot;loss&quot;:0.02460894137620926},{&quot;step&quot;:70,&quot;loss&quot;:0.02132323831319809},{&quot;step&quot;:80,&quot;loss&quot;:0.024873426556587218},{&quot;step&quot;:90,&quot;loss&quot;:0.019556394219398497},{&quot;step&quot;:100,&quot;loss&quot;:0.01602860391139984},{&quot;step&quot;:110,&quot;loss&quot;:0.02409356236457825},{&quot;step&quot;:120,&quot;loss&quot;:0.019735607504844665},{&quot;step&quot;:130,&quot;loss&quot;:0.013873323798179626},{&quot;step&quot;:140,&quot;loss&quot;:0.010649608075618744},{&quot;step&quot;:150,&quot;loss&quot;:0.011053714156150817},{&quot;step&quot;:160,&quot;loss&quot;:0.014582811295986176},{&quot;step&quot;:170,&quot;loss&quot;:0.006184731796383858},{&quot;step&quot;:180,&quot;loss&quot;:0.011355480551719666},{&quot;step&quot;:190,&quot;loss&quot;:0.006981174647808075},{&quot;step&quot;:200,&quot;loss&quot;:0.00928906574845314},{&quot;step&quot;:210,&quot;loss&quot;:0.006646432727575302},{&quot;step&quot;:220,&quot;loss&quot;:0.011563911288976669},{&quot;step&quot;:230,&quot;loss&quot;:0.00748862624168396},{&quot;step&quot;:240,&quot;loss&quot;:0.007516113668680191},{&quot;step&quot;:250,&quot;loss&quot;:0.004136607050895691}],&quot;Iteration 3&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.0725083589553833},{&quot;step&quot;:20,&quot;loss&quot;:0.04455651640892029},{&quot;step&quot;:30,&quot;loss&quot;:0.02985054850578308},{&quot;step&quot;:40,&quot;loss&quot;:0.02607521414756775},{&quot;step&quot;:50,&quot;loss&quot;:0.026091095805168153},{&quot;step&quot;:60,&quot;loss&quot;:0.018475410342216492},{&quot;step&quot;:70,&quot;loss&quot;:0.01835303008556366},{&quot;step&quot;:80,&quot;loss&quot;:0.02360699325799942},{&quot;step&quot;:90,&quot;loss&quot;:0.020034022629261017},{&quot;step&quot;:100,&quot;loss&quot;:0.017450812458992004},{&quot;step&quot;:110,&quot;loss&quot;:0.023809024691581727},{&quot;step&quot;:120,&quot;loss&quot;:0.026199805736541747},{&quot;step&quot;:130,&quot;loss&quot;:0.016914071142673494},{&quot;step&quot;:140,&quot;loss&quot;:0.01687278151512146},{&quot;step&quot;:150,&quot;loss&quot;:0.023602665960788728},{&quot;step&quot;:160,&quot;loss&quot;:0.012454704195261002},{&quot;step&quot;:170,&quot;loss&quot;:0.02102276086807251},{&quot;step&quot;:180,&quot;loss&quot;:0.015820173919200896},{&quot;step&quot;:190,&quot;loss&quot;:0.01367838829755783},{&quot;step&quot;:200,&quot;loss&quot;:0.0089110367000103},{&quot;step&quot;:210,&quot;loss&quot;:0.0051435336470603945},{&quot;step&quot;:220,&quot;loss&quot;:0.009687837213277817},{&quot;step&quot;:230,&quot;loss&quot;:0.006552821397781372},{&quot;step&quot;:240,&quot;loss&quot;:0.01278168112039566},{&quot;step&quot;:250,&quot;loss&quot;:0.0070999331772327425},{&quot;step&quot;:260,&quot;loss&quot;:0.0057310439646244046},{&quot;step&quot;:270,&quot;loss&quot;:0.011061688512563705},{&quot;step&quot;:280,&quot;loss&quot;:0.01246921494603157},{&quot;step&quot;:290,&quot;loss&quot;:0.008612743020057679},{&quot;step&quot;:300,&quot;loss&quot;:0.007471929490566254},{&quot;step&quot;:310,&quot;loss&quot;:0.006952841579914093},{&quot;step&quot;:320,&quot;loss&quot;:0.00915057361125946},{&quot;step&quot;:330,&quot;loss&quot;:0.003998700529336929},{&quot;step&quot;:340,&quot;loss&quot;:0.006693597882986069},{&quot;step&quot;:350,&quot;loss&quot;:0.009400887042284011},{&quot;step&quot;:360,&quot;loss&quot;:0.0073289632797241214},{&quot;step&quot;:370,&quot;loss&quot;:0.007224848866462708}]}"></canvas>
+            <div wire:ignore wire:key="loss-6b6ba9f405f02ac1ae7babd9b06736b2" class="h-64">
+            <canvas data-loss="{&quot;Iteration 1&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.07076128721237182},{&quot;step&quot;:20,&quot;loss&quot;:0.03866375982761383},{&quot;step&quot;:30,&quot;loss&quot;:0.034896242618560794},{&quot;step&quot;:40,&quot;loss&quot;:0.027357009053230286},{&quot;step&quot;:50,&quot;loss&quot;:0.022221764922142027},{&quot;step&quot;:60,&quot;loss&quot;:0.023931731283664704},{&quot;step&quot;:70,&quot;loss&quot;:0.020980696380138397},{&quot;step&quot;:80,&quot;loss&quot;:0.01766873598098755},{&quot;step&quot;:90,&quot;loss&quot;:0.016758611798286437},{&quot;step&quot;:100,&quot;loss&quot;:0.01277521699666977},{&quot;step&quot;:110,&quot;loss&quot;:0.01279919296503067},{&quot;step&quot;:120,&quot;loss&quot;:0.015773336589336395},{&quot;step&quot;:130,&quot;loss&quot;:0.013079096376895905},{&quot;step&quot;:140,&quot;loss&quot;:0.012091741710901261},{&quot;step&quot;:150,&quot;loss&quot;:0.006148859485983848},{&quot;step&quot;:160,&quot;loss&quot;:0.007491788268089295},{&quot;step&quot;:170,&quot;loss&quot;:0.0080856591463089}],&quot;Iteration 2&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.07823448181152344},{&quot;step&quot;:20,&quot;loss&quot;:0.04172346591949463},{&quot;step&quot;:30,&quot;loss&quot;:0.030559390783309937},{&quot;step&quot;:40,&quot;loss&quot;:0.029161813855171203},{&quot;step&quot;:50,&quot;loss&quot;:0.01939370632171631},{&quot;step&quot;:60,&quot;loss&quot;:0.018980252742767333},{&quot;step&quot;:70,&quot;loss&quot;:0.014209049940109252},{&quot;step&quot;:80,&quot;loss&quot;:0.024526789784431458},{&quot;step&quot;:90,&quot;loss&quot;:0.02381969690322876},{&quot;step&quot;:100,&quot;loss&quot;:0.01718316376209259},{&quot;step&quot;:110,&quot;loss&quot;:0.01879799962043762},{&quot;step&quot;:120,&quot;loss&quot;:0.020549115538597108},{&quot;step&quot;:130,&quot;loss&quot;:0.017095616459846495},{&quot;step&quot;:140,&quot;loss&quot;:0.02166870832443237},{&quot;step&quot;:150,&quot;loss&quot;:0.013546706736087799},{&quot;step&quot;:160,&quot;loss&quot;:0.008157092332839965},{&quot;step&quot;:170,&quot;loss&quot;:0.00517316535115242},{&quot;step&quot;:180,&quot;loss&quot;:0.015757711231708528},{&quot;step&quot;:190,&quot;loss&quot;:0.0071616947650909426},{&quot;step&quot;:200,&quot;loss&quot;:0.01909261792898178},{&quot;step&quot;:210,&quot;loss&quot;:0.010535386949777603},{&quot;step&quot;:220,&quot;loss&quot;:0.007924553006887436},{&quot;step&quot;:230,&quot;loss&quot;:0.008006984740495682},{&quot;step&quot;:240,&quot;loss&quot;:0.0037598490715026857},{&quot;step&quot;:250,&quot;loss&quot;:0.004911978915333748},{&quot;step&quot;:260,&quot;loss&quot;:0.005989359319210052},{&quot;step&quot;:270,&quot;loss&quot;:0.005331707745790481},{&quot;step&quot;:280,&quot;loss&quot;:0.006513266265392304},{&quot;step&quot;:290,&quot;loss&quot;:0.0051994331181049345}]}"></canvas>
         </div>
     </div>
     </div>

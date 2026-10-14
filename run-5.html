@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Merchant ticket triage (BG/EN), guidelines v2 report - Chirak</title>
+    <link rel="preload" as="style" href="assets/app-CzdTzTMW.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-CzdTzTMW.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
+<body class="min-h-full font-sans text-slate-900 antialiased">
+<header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <a href="https://github.com/escapeboy/chirak" class="flex items-baseline gap-2">
+            <span class="text-lg font-bold tracking-tight text-brand-600">Chirak</span>
+            <span class="hidden text-sm text-slate-500 sm:inline">task description in, fine-tuned small model out</span>
+        </a>
+        <a href="https://github.com/escapeboy/chirak" class="text-sm font-medium text-slate-700 hover:text-brand-600">Source on GitHub</a>
+    </div>
+    </header>
+
+<main class="mx-auto max-w-6xl px-4 py-8">
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 5 (<code>merchant-triage-j1zjro</code>), generated 14 Oct 2026 from its stored results. Runs: <a class="underline" href="index.html">Run 6</a> · <a class="underline" href="run-5b.html">Run 5b</a> · <strong>Run 5</strong> · <a class="underline" href="run-4.html">Run 4</a>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl font-bold tracking-tight">Merchant ticket triage (BG/EN), guidelines v2</h1>
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700">not worth it</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-500">Triage incoming customer-support tickets of an online shop. Public, read-only report built from the stored results.</p>
+                <p class="mt-2 text-sm text-slate-700">Fine-tuning was skipped: baseline already meets target.</p>    </div>
+
+            <div class="mb-6 grid gap-4 sm:grid-cols-3">
+            <div class="card"><div class="text-sm text-slate-500">Baseline macro-f1</div><div class="text-3xl font-bold">93.5%</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Final macro-f1</div><div class="text-3xl font-bold">—</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Change</div><div class="text-3xl font-bold">—</div></div>
+        </div>
+    
+    <div class="space-y-6">
+        <div class="card">
+    <h2 class="card-title">Baseline vs iterations</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
+                    <th class="th">JSON validity</th><th class="th">Exact match</th>
+                                    </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr class="">
+                        <td class="td font-medium">Baseline (base model) </td>
+                        <td class="td">93.5%</td>
+                        <td class="td">93.5%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">69.8%</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+        <p class="mt-3 text-sm text-slate-500">
+            Target: macro-f1 at least 92%.
+                         Stopped: baseline already meets target.         </p>
+            </div>
+                        <div class="card">
+    <h2 class="card-title">Per-class results, baseline</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Class</th><th class="th">Support</th>
+                    <th class="th">Base P</th><th class="th">Base R</th><th class="th">Base F1</th>
+                                    </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr>
+                        <td class="td font-medium">orders</td>
+                        <td class="td">31</td>
+                        <td class="td">97%</td>
+                        <td class="td">94%</td>
+                        <td class="td">95%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">shipping</td>
+                        <td class="td">31</td>
+                        <td class="td">100%</td>
+                        <td class="td">94%</td>
+                        <td class="td">97%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">returns</td>
+                        <td class="td">31</td>
+                        <td class="td">100%</td>
+                        <td class="td">97%</td>
+                        <td class="td">98%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">payments</td>
+                        <td class="td">31</td>
+                        <td class="td">89%</td>
+                        <td class="td">77%</td>
+                        <td class="td">83%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">product_questions</td>
+                        <td class="td">30</td>
+                        <td class="td">81%</td>
+                        <td class="td">100%</td>
+                        <td class="td">90%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">complaints</td>
+                        <td class="td">30</td>
+                        <td class="td">100%</td>
+                        <td class="td">100%</td>
+                        <td class="td">100%</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">other</td>
+                        <td class="td">31</td>
+                        <td class="td">91%</td>
+                        <td class="td">94%</td>
+                        <td class="td">92%</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Confusion matrix <span class="normal-case text-slate-400">(Baseline, rows = expected, columns = predicted)</span></h2>
+                    <div class="overflow-x-auto">
+            <table class="text-xs">
+                <thead><tr>
+                    <th class="p-1"></th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="orders">orders</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="shipping">shipping</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="returns">returns</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="payments">payments</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="product_questions">product_qu...</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="complaints">complaints</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="other">other</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="__invalid__">__invalid_...</th>
+                                    </tr></thead>
+                <tbody>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">orders</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">29</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.14)">2</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">shipping</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">29</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.14)">2</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">returns</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">payments</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.82)">24</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.17)">3</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.17)">3</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">product_questions</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">complaints</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">other</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.14)">2</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">29</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">__invalid__</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(5,150,105,0)">0</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Leakage guard and frozen eval set</h2>
+            <dl class="mb-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">215 (200 synthetic + 15 seed)</dd></div>
+            <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">2026-10-14 10:26:50 UTC</dd></div>
+                            <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">429 of 661 eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-slate-500">Eval SHA-256</dt><dd class="break-all font-mono text-xs">78f3529dc3037330e68de05cca9ffccca2c59273391bde5f484fcb13ea1952b0</dd></div>
+        </dl>
+    
+    </div>
+        <div class="card">
+    <h2 class="card-title">Decisions log</h2>
+            <p class="text-sm text-slate-500">No decision yet. The first one comes after the first adapter is evaluated.</p>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Training loss</h2>
+            <p class="text-sm text-slate-500">No training has finished yet.</p>
+    </div>
+    </div>
+</main>
+
+<footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400">
+    Chirak, MIT licensed. Training and evaluation run on one AMD Instinct GPU (MI300X during the spike, MI350X for the demo run).
+</footer>
+</body>
+</html>

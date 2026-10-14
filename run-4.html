@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Merchant ticket triage (BG/EN) report - Chirak</title>
+    <link rel="preload" as="style" href="assets/app-CzdTzTMW.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-CzdTzTMW.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
+<body class="min-h-full font-sans text-slate-900 antialiased">
+<header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <a href="https://github.com/escapeboy/chirak" class="flex items-baseline gap-2">
+            <span class="text-lg font-bold tracking-tight text-brand-600">Chirak</span>
+            <span class="hidden text-sm text-slate-500 sm:inline">task description in, fine-tuned small model out</span>
+        </a>
+        <a href="https://github.com/escapeboy/chirak" class="text-sm font-medium text-slate-700 hover:text-brand-600">Source on GitHub</a>
+    </div>
+    </header>
+
+<main class="mx-auto max-w-6xl px-4 py-8">
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 4 (<code>merchant-triage-g4oirl</code>), generated 14 Oct 2026 from its stored results. Runs: <a class="underline" href="index.html">Run 6</a> · <a class="underline" href="run-5b.html">Run 5b</a> · <a class="underline" href="run-5.html">Run 5</a> · <strong>Run 4</strong>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl font-bold tracking-tight">Merchant ticket triage (BG/EN)</h1>
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700">completed</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-500">Triage incoming customer-support tickets of an online shop. Public, read-only report built from the stored results.</p>
+                    </div>
+
+            
+        <div class="mb-6 grid gap-4 sm:grid-cols-2">
+                            <div class="card">
+                    <div class="text-sm text-slate-500">Clean slice: macro-f1</div>
+                    <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                                                    <div>
+                                <div class="text-xs text-slate-500">Base model</div>
+                                <div class="text-2xl font-bold">84.1%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 1</div>
+                                <div class="text-2xl font-bold">99.1%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 2</div>
+                                <div class="text-2xl font-bold text-emerald-700">98.2%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 3</div>
+                                <div class="text-2xl font-bold">98.1%</div>
+                            </div>
+                                            </div>
+                </div>
+                            <div class="card">
+                    <div class="text-sm text-slate-500">Hard slice: macro-f1</div>
+                    <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                                                    <div>
+                                <div class="text-xs text-slate-500">Base model</div>
+                                <div class="text-2xl font-bold">77.2%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 1</div>
+                                <div class="text-2xl font-bold">82.5%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 2</div>
+                                <div class="text-2xl font-bold text-emerald-700">84.4%</div>
+                            </div>
+                                                    <div>
+                                <div class="text-xs text-slate-500">Iteration 3</div>
+                                <div class="text-2xl font-bold">83.3%</div>
+                            </div>
+                                            </div>
+                </div>
+                    </div>
+    
+    <div class="space-y-6">
+        <div class="card">
+    <h2 class="card-title">Baseline vs iterations</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1 (clean)</th>
+                    <th class="th">JSON validity</th><th class="th">Exact match</th>
+                    <th class="th">Macro-F1 (hard)</th><th class="th">Exact match (hard)</th>                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr class="">
+                        <td class="td font-medium">Baseline (base model) </td>
+                        <td class="td">84.7%</td>
+                        <td class="td">84.1%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">59.5%</td>
+                        <td class="td">77.2%</td><td class="td">58.8%</td>                    </tr>
+                                    <tr class="">
+                        <td class="td font-medium">Iteration 1 </td>
+                        <td class="td">99.1%</td>
+                        <td class="td">99.1%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">90.7%</td>
+                        <td class="td">82.5%</td><td class="td">65.6%</td>                    </tr>
+                                    <tr class="bg-emerald-50/50">
+                        <td class="td font-medium">Iteration 2 <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">served</span></td>
+                        <td class="td">98.1%</td>
+                        <td class="td">98.2%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">90.2%</td>
+                        <td class="td">84.4%</td><td class="td">66.4%</td>                    </tr>
+                                    <tr class="">
+                        <td class="td font-medium">Iteration 3 </td>
+                        <td class="td">98.1%</td>
+                        <td class="td">98.1%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">90.2%</td>
+                        <td class="td">83.3%</td><td class="td">65.6%</td>                    </tr>
+                                </tbody>
+            </table>
+        </div>
+        <p class="mt-3 text-sm text-slate-500">
+            Target: macro-f1 at least 92%.
+             Measured on the hard slice.              Stopped: reached the maximum of 3 iterations.         </p>
+                    <p class="mt-2 text-sm text-slate-600">
+                Two eval slices. <span class="font-medium">Clean</span>: tickets where two readings by the generator agree on the label (the label it was written for and its own blind re-label); 215 tickets, the original frozen eval.
+                <span class="font-medium">Hard</span>: tickets the blind label check rejected; 119 tickets, labelled by the Claude judge where it agreed with the intended label (14), otherwise
+                 by Claude Code on the owner's delegation, not by a human                 (105). sha256 <span class="font-mono">c5997a472e7b…</span>
+            </p>
+            </div>
+        <div class="card">
+    <h2 class="card-title">Held-out examples</h2>
+    <p class="mb-3 text-sm text-slate-500">
+        5 tickets kept out of every dataset file, sent to the base model and to the served adapter (iteration 2) through the playground's /predict.
+        They were written by Claude at the owner's request, not by a human.
+    </p>
+            <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead><tr><th class="th">Ticket</th><th class="th">Expected</th><th class="th">Base model</th><th class="th">Adapter</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+                            <tr>
+                    <td class="td max-w-md whitespace-normal">Tracking says &#039;returned to sender&#039; but nobody ever tried to deliver or called me. I still want the package.</td>
+                    <td class="td">shipping / normal / true</td>
+                                                                    <td class="td text-red-700">
+                            shipping / high / true
+                        </td>
+                                                                    <td class="td text-emerald-700">
+                            shipping / normal / true
+                        </td>
+                                    </tr>
+                            <tr>
+                    <td class="td max-w-md whitespace-normal">Купих с код за -15%, но ме таксувахте с пълната цена. Може ли да ми върнете разликата?</td>
+                    <td class="td">payments / normal / true</td>
+                                                                    <td class="td text-red-700">
+                            payments / high / true
+                        </td>
+                                                                    <td class="td text-emerald-700">
+                            payments / normal / true
+                        </td>
+                                    </tr>
+                            <tr>
+                    <td class="td max-w-md whitespace-normal">Поръчах калъф за iPhone, получих за Samsung. Second time this happens, honestly my last order from you.</td>
+                    <td class="td">complaints / high / true</td>
+                                                                    <td class="td text-emerald-700">
+                            complaints / high / true
+                        </td>
+                                                                    <td class="td text-emerald-700">
+                            complaints / high / true
+                        </td>
+                                    </tr>
+                            <tr>
+                    <td class="td max-w-md whitespace-normal">Is the stroller suitable from birth or only from 6 months? Does it fit in a small car boot?</td>
+                    <td class="td">product_questions / low / false</td>
+                                                                    <td class="td text-emerald-700">
+                            product_questions / low / false
+                        </td>
+                                                                    <td class="td text-emerald-700">
+                            product_questions / low / false
+                        </td>
+                                    </tr>
+                            <tr>
+                    <td class="td max-w-md whitespace-normal">Имате ли физически магазин в Пловдив, където да видя продуктите на живо?</td>
+                    <td class="td">other / low / false</td>
+                                                                    <td class="td text-red-700">
+                            product_questions / low / false
+                        </td>
+                                                                    <td class="td text-emerald-700">
+                            other / low / false
+                        </td>
+                                    </tr>
+                        </tbody>
+        </table>
+    </div>
+    <p class="mt-2 text-xs text-slate-500">Labels: category / urgency / needs_human. Green: equals the expected label in all fields.</p>
+</div>
+                <div class="card">
+    <h2 class="card-title">Per-class results, baseline vs iteration 2</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Class</th><th class="th">Support</th>
+                    <th class="th">Base P</th><th class="th">Base R</th><th class="th">Base F1</th>
+                    <th class="th">P</th><th class="th">R</th><th class="th">F1</th><th class="th">F1 vs base</th>                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr>
+                        <td class="td font-medium">orders</td>
+                        <td class="td">31</td>
+                        <td class="td">91%</td>
+                        <td class="td">65%</td>
+                        <td class="td">75%</td>
+                                                    <td class="td">97%</td>
+                            <td class="td">100%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+22.9 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">shipping</td>
+                        <td class="td">31</td>
+                        <td class="td">76%</td>
+                        <td class="td">100%</td>
+                        <td class="td">86%</td>
+                                                    <td class="td">97%</td>
+                            <td class="td">97%</td>
+                            <td class="td">97%</td>
+                            <td class="td font-medium text-emerald-700">+10.7 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">returns</td>
+                        <td class="td">31</td>
+                        <td class="td">94%</td>
+                        <td class="td">94%</td>
+                        <td class="td">94%</td>
+                                                    <td class="td">100%</td>
+                            <td class="td">97%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+4.8 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">payments</td>
+                        <td class="td">31</td>
+                        <td class="td">86%</td>
+                        <td class="td">97%</td>
+                        <td class="td">91%</td>
+                                                    <td class="td">97%</td>
+                            <td class="td">100%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+7.5 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">product_questions</td>
+                        <td class="td">30</td>
+                        <td class="td">78%</td>
+                        <td class="td">97%</td>
+                        <td class="td">87%</td>
+                                                    <td class="td">100%</td>
+                            <td class="td">100%</td>
+                            <td class="td">100%</td>
+                            <td class="td font-medium text-emerald-700">+13.4 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">complaints</td>
+                        <td class="td">31</td>
+                        <td class="td">90%</td>
+                        <td class="td">61%</td>
+                        <td class="td">73%</td>
+                                                    <td class="td">97%</td>
+                            <td class="td">94%</td>
+                            <td class="td">95%</td>
+                            <td class="td font-medium text-emerald-700">+22.0 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">other</td>
+                        <td class="td">30</td>
+                        <td class="td">86%</td>
+                        <td class="td">80%</td>
+                        <td class="td">83%</td>
+                                                    <td class="td">100%</td>
+                            <td class="td">100%</td>
+                            <td class="td">100%</td>
+                            <td class="td font-medium text-emerald-700">+17.2 pts</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Confusion matrix <span class="normal-case text-slate-400">(Iteration 2, rows = expected, columns = predicted)</span></h2>
+                    <div class="overflow-x-auto">
+            <table class="text-xs">
+                <thead><tr>
+                    <th class="p-1"></th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="orders">orders</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="shipping">shipping</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="returns">returns</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="payments">payments</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="product_questions">product_qu...</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="complaints">complaints</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="other">other</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="__invalid__">__invalid_...</th>
+                                    </tr></thead>
+                <tbody>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">orders</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">31</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">shipping</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">returns</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">payments</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">31</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">product_questions</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">complaints</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.11)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.94)">29</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">other</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.97)">30</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">__invalid__</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(5,150,105,0)">0</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Leakage guard and frozen eval set</h2>
+            <dl class="mb-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">215 (200 synthetic + 15 seed)</dd></div>
+            <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">2026-10-13 11:55:39 UTC</dd></div>
+                            <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">564 of 777 eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-slate-500">Eval SHA-256</dt><dd class="break-all font-mono text-xs">6ecec925c3f74820a04becb40f46468ce3630b0ef86985feed53369fbe3c9160</dd></div>
+        </dl>
+    
+            <table class="min-w-full divide-y divide-slate-200">
+            <thead><tr><th class="th">Train set</th><th class="th">Candidates</th><th class="th">Dropped as near-copies of eval</th><th class="th">Drop rate</th><th class="th">Dropped by label check</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+                            <tr>
+                    <td class="td">Iteration 1</td>
+                    <td class="td">3923</td>
+                    <td class="td">78</td>
+                    <td class="td">2.0% </td>
+                    <td class="td">2725</td>
+                </tr>
+                            <tr>
+                    <td class="td">Iteration 2</td>
+                    <td class="td">3364</td>
+                    <td class="td">84</td>
+                    <td class="td">2.5% </td>
+                    <td class="td">2237</td>
+                </tr>
+                            <tr>
+                    <td class="td">Iteration 3</td>
+                    <td class="td">3050</td>
+                    <td class="td">61</td>
+                    <td class="td">2.0% </td>
+                    <td class="td">1959</td>
+                </tr>
+                        </tbody>
+        </table>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Decisions log</h2>
+            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="font-semibold">After iteration 1</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">clean slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
+                    Stop rules: stop, target met (0.991 &gt;= 0.920)
+                </span>
+            </div>
+                            <p class="text-sm text-slate-500">The model was not consulted: the stop rules ended the loop.</p>
+                    </div>
+            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="font-semibold">After iteration 1</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
+                    Stop rules: continue, no stop rule hit
+                </span>
+            </div>
+                                            <p class="text-sm text-slate-700">
+                    <span class="font-medium">claude-sonnet-5-5:</span>
+                    Macro F1 0.825 is below the 0.92 target. The weak classes are complaints (F1 0.55) and other (F1 0.69). Complaints are mislabeled as returns (damaged goods with demands for an escalation or plan) and as other (legal, GDPR, security, contract threats). Other is over-predicted: legit product_questions (wholesale, B2B, legal-sounding) and ordinary topics (shipping, payments) with legal or formal vocabulary fall into it. Payments are confused with complaints and returns when the tone is angry or the subject is a refund, a fee or a subscription. Legal vocabulary in orders and shipping tickets pushes predictions to the wrong category. Tone and keywords are overriding the main topic.
+                                            <span class="text-slate-400">(model's own stop opinion: continue, not used)</span>
+                                    </p>
+                <ul class="mt-2 space-y-1 text-sm">
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_returns</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Bg and en tickets about damaged or broken goods on arrival, where the customer&#039;s main demand is accountability, an escalation, a formal response, or a compensation plan rather than a standard return or exchange. Contrast them with plain return or exchange requests that stay in returns. Vary the tone, the urgency and the threats to leave.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_other_legal</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Tickets with legal, GDPR, data-privacy, security-breach, contract or arbitration threats about the shop&#039;s conduct or service, labeled complaints with high urgency and needs_human true. Contrast them with true &#039;other&#039; tickets: neutral non-shop topics, minor site or app bugs, cosmetic feedback, partnership or spam messages. Use both bg and en, and vary the formality.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">payments_vs_complaints_returns</span> <span class="text-slate-500">x180</span> <span class="text-slate-600">Angry or neutral tickets whose core issue is money: double charges, unexpected fees, subscription billing, refunds not received after a return, chargeback threats. Label them payments even when the tone is hostile or the ticket mentions returns, shipping or site problems. Include some calm fee-explanation questions with needs_human true. Contrast with complaints about service quality that mention no money problem.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">product_questions_vs_other</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Pre-purchase questions about wholesale or bulk pricing, corporate gift cards, quotes, specs, certifications, and regulatory or warranty validity of products. Label them product_questions, with low urgency, and needs_human true only when legal or regulatory advice is requested. Contrast with truly off-topic &#039;other&#039; tickets. Use bg and en, formal and casual.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">legal_words_orders_shipping</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Orders and shipping tickets that contain legal, corporate or compliance vocabulary, such as a lawyer requesting a delivery confirmation, a company HQ address, freight liability or an invoice discrepancy. The label follows the main topic (address change on an unshipped order -&gt; orders; delivery date or transit liability -&gt; shipping). Set needs_human true only when a person must decide or the matter is legal.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">other_minor_bugs_boundary</span> <span class="text-slate-500">x100</span> <span class="text-slate-600">Low-urgency feedback about site or app glitches, cosmetic issues, checkout freezes that resolved themselves, and general suggestions, labeled other with needs_human false. Contrast them with real complaints about orders or service, which carry real harm and a demand for resolution. Mix bg and en.</span></li>
+                                    </ul>
+                    </div>
+            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="font-semibold">After iteration 2</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
+                    Stop rules: continue, no stop rule hit
+                </span>
+            </div>
+                                            <p class="text-sm text-slate-700">
+                    <span class="font-medium">claude-sonnet-5-5:</span>
+                    Macro F1 0.844 is up from 0.825 but still below the 0.92 target. Complaints is the weakest class (recall 0.5, F1 0.67): half of the tickets fall into other (legal, GDPR, data breach, contract threats, and a persistent site-crash frustration case) or into returns, shipping and payments when the damage or demand is strong. Other is over-predicted (precision 0.67), absorbing complaints and product_questions (wholesale and B2B). Shipping, orders and returns are confused when the ticket involves damaged goods in transit, late delivery combined with a return demand, address changes, or legal vocabulary. Payments is confused with shipping and returns when the issue is a fee or a charge. Tone and surface keywords still override the main topic, so more contrastive data on these boundaries is needed. The urgency (0.84) and needs_human fields also have errors, for example urgency inflated by &#039;legal&#039; words and needs_human missed on fee disputes.
+                                            <span class="text-slate-400">(model's own stop opinion: continue, not used)</span>
+                                    </p>
+                <ul class="mt-2 space-y-1 text-sm">
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_other</span> <span class="text-slate-500">x220</span> <span class="text-slate-600">Bg and en tickets where the customer is clearly unhappy with the shop&#039;s service, conduct or platform and wants a person to respond: persistent site or checkout failures causing real frustration, data-protection or GDPR disputes, security concerns, contract or terms disputes, and threats of formal action. Label complaints with needs_human true and urgency matched to deadlines or threats (high when a deadline, money loss or threat to leave is present, otherwise normal). Contrast with genuine other tickets: spam, partnership offers, neutral non-shop topics, one-off minor glitches or suggestions that need no resolution, labeled other with needs_human false. Vary formality and length.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">complaints_vs_returns_shipping</span> <span class="text-slate-500">x200</span> <span class="text-slate-600">Tickets about goods that arrived broken or late where the customer&#039;s main demand is accountability, escalation, compensation or a threat to leave, labeled complaints. Contrast with tickets in which the main ask is a concrete logistics action: a return or exchange labeled returns, a delivery status or courier problem labeled shipping. The label follows what the customer wants solved first. Include cases that combine damage, courier blame and a request for a supervisor or a refund. Use both languages and vary the tone.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">shipping_vs_orders</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Contrast tickets about changing or correcting an order before dispatch (address fix, item change, cancellation, an order not visible or confirmed in the system) labeled orders, with tickets about transit, delivery dates, lost or delayed parcels, delivery confirmations and courier issues labeled shipping. Include cases with legal, corporate or compliance wording, lawyers or company HQ addresses, where the label still follows the main topic. Include some where payment was made but the order is not shown as dispatched. Set urgency by real deadlines or money loss, not by formal vocabulary. Use bg and en.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">payments_fees_vs_shipping_returns</span> <span class="text-slate-500">x170</span> <span class="text-slate-600">Tickets whose core issue is money: unexpected delivery fees or charges on a bill, repeated charges after a return, refunds not received, double charges, billing explanations. Label payments even when delivery, shipping or return words appear. Set needs_human true when a person must decide on a refund, fee reversal or fee explanation. Contrast with shipping tickets about delivery status and returns tickets about how to send goods back. Include angry and calm tones, with threats to involve authorities for the high-urgency cases. Mix bg and en.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">product_questions_b2b_vs_other</span> <span class="text-slate-500">x150</span> <span class="text-slate-600">Pre-purchase questions about wholesale or bulk prices, price lists, corporate gift cards, quotes by email, minimum order quantities, product specs and certifications. Label product_questions with low urgency and needs_human false (true only if legal or regulatory advice is requested). Contrast with truly off-topic or spam other tickets. Use bg and en, casual and formal, with business context such as cafes, shops and companies.</span></li>
+                                            <li class="rounded bg-slate-50 px-3 py-1.5"><span class="font-medium">urgency_needs_human_calibration</span> <span class="text-slate-500">x90</span> <span class="text-slate-600">Tickets across all categories that test the urgency and needs_human rules. Formal, legal or corporate wording without a deadline or money loss stays at normal urgency. High urgency requires lost money, a missed deadline or a threat to leave. Plain questions are low. needs_human is true for refunds, fee disputes, complaints and legal matters, and false for routine status checks, address fixes and information questions. Use bg and en with a balanced mix of labels.</span></li>
+                                    </ul>
+                    </div>
+            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="font-semibold">After iteration 3</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">hard slice</span>                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
+                    Stop rules: stop, reached the maximum of 3 iterations
+                </span>
+            </div>
+                            <p class="text-sm text-slate-500">The model was not consulted: the stop rules ended the loop.</p>
+                    </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Training loss</h2>
+            <div wire:ignore wire:key="loss-1be0ca85ff3894af7b5ef662dd3f4c68" class="h-64">
+            <canvas data-loss="{&quot;Iteration 1&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.06247365474700928},{&quot;step&quot;:20,&quot;loss&quot;:0.03177624344825745},{&quot;step&quot;:30,&quot;loss&quot;:0.029363104701042177},{&quot;step&quot;:40,&quot;loss&quot;:0.02424766421318054},{&quot;step&quot;:50,&quot;loss&quot;:0.027609029412269594},{&quot;step&quot;:60,&quot;loss&quot;:0.019610844552516937},{&quot;step&quot;:70,&quot;loss&quot;:0.015485771000385284},{&quot;step&quot;:80,&quot;loss&quot;:0.008084337413311004},{&quot;step&quot;:90,&quot;loss&quot;:0.008442186564207078},{&quot;step&quot;:100,&quot;loss&quot;:0.013176006078720093},{&quot;step&quot;:110,&quot;loss&quot;:0.004781015962362289},{&quot;step&quot;:120,&quot;loss&quot;:0.004479680582880974}],&quot;Iteration 2&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.06971840858459473},{&quot;step&quot;:20,&quot;loss&quot;:0.042352098226547244},{&quot;step&quot;:30,&quot;loss&quot;:0.026565942168235778},{&quot;step&quot;:40,&quot;loss&quot;:0.02063277065753937},{&quot;step&quot;:50,&quot;loss&quot;:0.023110780119895934},{&quot;step&quot;:60,&quot;loss&quot;:0.02460894137620926},{&quot;step&quot;:70,&quot;loss&quot;:0.02132323831319809},{&quot;step&quot;:80,&quot;loss&quot;:0.024873426556587218},{&quot;step&quot;:90,&quot;loss&quot;:0.019556394219398497},{&quot;step&quot;:100,&quot;loss&quot;:0.01602860391139984},{&quot;step&quot;:110,&quot;loss&quot;:0.02409356236457825},{&quot;step&quot;:120,&quot;loss&quot;:0.019735607504844665},{&quot;step&quot;:130,&quot;loss&quot;:0.013873323798179626},{&quot;step&quot;:140,&quot;loss&quot;:0.010649608075618744},{&quot;step&quot;:150,&quot;loss&quot;:0.011053714156150817},{&quot;step&quot;:160,&quot;loss&quot;:0.014582811295986176},{&quot;step&quot;:170,&quot;loss&quot;:0.006184731796383858},{&quot;step&quot;:180,&quot;loss&quot;:0.011355480551719666},{&quot;step&quot;:190,&quot;loss&quot;:0.006981174647808075},{&quot;step&quot;:200,&quot;loss&quot;:0.00928906574845314},{&quot;step&quot;:210,&quot;loss&quot;:0.006646432727575302},{&quot;step&quot;:220,&quot;loss&quot;:0.011563911288976669},{&quot;step&quot;:230,&quot;loss&quot;:0.00748862624168396},{&quot;step&quot;:240,&quot;loss&quot;:0.007516113668680191},{&quot;step&quot;:250,&quot;loss&quot;:0.004136607050895691}],&quot;Iteration 3&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.0725083589553833},{&quot;step&quot;:20,&quot;loss&quot;:0.04455651640892029},{&quot;step&quot;:30,&quot;loss&quot;:0.02985054850578308},{&quot;step&quot;:40,&quot;loss&quot;:0.02607521414756775},{&quot;step&quot;:50,&quot;loss&quot;:0.026091095805168153},{&quot;step&quot;:60,&quot;loss&quot;:0.018475410342216492},{&quot;step&quot;:70,&quot;loss&quot;:0.01835303008556366},{&quot;step&quot;:80,&quot;loss&quot;:0.02360699325799942},{&quot;step&quot;:90,&quot;loss&quot;:0.020034022629261017},{&quot;step&quot;:100,&quot;loss&quot;:0.017450812458992004},{&quot;step&quot;:110,&quot;loss&quot;:0.023809024691581727},{&quot;step&quot;:120,&quot;loss&quot;:0.026199805736541747},{&quot;step&quot;:130,&quot;loss&quot;:0.016914071142673494},{&quot;step&quot;:140,&quot;loss&quot;:0.01687278151512146},{&quot;step&quot;:150,&quot;loss&quot;:0.023602665960788728},{&quot;step&quot;:160,&quot;loss&quot;:0.012454704195261002},{&quot;step&quot;:170,&quot;loss&quot;:0.02102276086807251},{&quot;step&quot;:180,&quot;loss&quot;:0.015820173919200896},{&quot;step&quot;:190,&quot;loss&quot;:0.01367838829755783},{&quot;step&quot;:200,&quot;loss&quot;:0.0089110367000103},{&quot;step&quot;:210,&quot;loss&quot;:0.0051435336470603945},{&quot;step&quot;:220,&quot;loss&quot;:0.009687837213277817},{&quot;step&quot;:230,&quot;loss&quot;:0.006552821397781372},{&quot;step&quot;:240,&quot;loss&quot;:0.01278168112039566},{&quot;step&quot;:250,&quot;loss&quot;:0.0070999331772327425},{&quot;step&quot;:260,&quot;loss&quot;:0.0057310439646244046},{&quot;step&quot;:270,&quot;loss&quot;:0.011061688512563705},{&quot;step&quot;:280,&quot;loss&quot;:0.01246921494603157},{&quot;step&quot;:290,&quot;loss&quot;:0.008612743020057679},{&quot;step&quot;:300,&quot;loss&quot;:0.007471929490566254},{&quot;step&quot;:310,&quot;loss&quot;:0.006952841579914093},{&quot;step&quot;:320,&quot;loss&quot;:0.00915057361125946},{&quot;step&quot;:330,&quot;loss&quot;:0.003998700529336929},{&quot;step&quot;:340,&quot;loss&quot;:0.006693597882986069},{&quot;step&quot;:350,&quot;loss&quot;:0.009400887042284011},{&quot;step&quot;:360,&quot;loss&quot;:0.0073289632797241214},{&quot;step&quot;:370,&quot;loss&quot;:0.007224848866462708}]}"></canvas>
+        </div>
+    </div>
+    </div>
+</main>
+
+<footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400">
+    Chirak, MIT licensed. Training and evaluation run on one AMD Instinct GPU (MI300X during the spike, MI350X for the demo run).
+</footer>
+</body>
+</html>
