@@ -3,6 +3,8 @@
 namespace Tests\Support;
 
 use App\Jobs\AdvanceRun;
+use App\Jobs\EvaluateOwnSet;
+use App\Jobs\LabelOwnItem;
 use App\Jobs\PollWorkerJob;
 use App\Models\Run;
 use App\Services\Pipeline\RunPipeline;
@@ -49,7 +51,7 @@ trait RunsPipeline
     {
         for ($ran = 0; $ran < $max; $ran++) {
             $next = null;
-            foreach ([AdvanceRun::class, PollWorkerJob::class] as $class) {
+            foreach ([AdvanceRun::class, PollWorkerJob::class, LabelOwnItem::class, EvaluateOwnSet::class] as $class) {
                 foreach (Queue::pushedJobs()[$class] ?? [] as $entry) {
                     if (! in_array(spl_object_id($entry['job']), $this->ranJobs, true)) {
                         $next = $entry['job'];

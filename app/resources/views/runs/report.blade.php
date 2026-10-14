@@ -38,6 +38,7 @@
     <div class="space-y-6">
         @include('run._results')
         @include('run._holdout')
+        @include('run._own', ['public' => true])
         @include('run._per-class')
         @include('run._confusion')
         @include('run._leakage')

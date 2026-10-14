@@ -15,6 +15,7 @@
         </div>
         <div class="flex gap-2">
             <a href="{{ route('runs.playground', $run) }}" class="btn-secondary">Playground</a>
+            <a href="{{ route('runs.tickets', $run) }}" class="btn-secondary">Own tickets</a>
             <a href="{{ route('runs.report', $run) }}" class="btn-secondary">Public report</a>
         </div>
     </div>
@@ -72,6 +73,7 @@
 
         @include('run._results')
         @include('run._holdout')
+        @include('run._own', ['public' => false])
 
         <div class="grid gap-6 lg:grid-cols-2">
             @include('run._loss')

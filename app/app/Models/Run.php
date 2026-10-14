@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Run extends Model
 {
@@ -58,6 +59,22 @@ class Run extends Model
     public function hardEvaluations(): HasMany
     {
         return $this->hasMany(Evaluation::class)->where('slice', 'hard');
+    }
+
+    /** Scores on the shop's own frozen tickets (the "own" slice). */
+    public function ownEvaluations(): HasMany
+    {
+        return $this->hasMany(Evaluation::class)->where('slice', 'own');
+    }
+
+    public function ownSet(): HasOne
+    {
+        return $this->hasOne(OwnSet::class);
+    }
+
+    public function ownItems(): HasMany
+    {
+        return $this->hasMany(OwnItem::class)->orderBy('position');
     }
 
     public function holdoutPredictions(): HasMany
