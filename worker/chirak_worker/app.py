@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import os
 import re
+import shutil
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Callable
@@ -199,6 +200,22 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
             tmp.write_bytes(body)
             os.replace(tmp, target)
         return {"path": str(target), "sha256": sha, "bytes": len(body)}
+
+    @app.delete("/runs/{run_id}/own", dependencies=[Depends(auth)])
+    def delete_own(run_id: str):
+        """Remove the run's own-tickets eval file and its eval-own results (they repeat ticket texts). Idempotent."""
+        rdir = run_dir(settings, run_id)
+        base = rdir.resolve()
+        victims = [rdir / "eval-own.jsonl", *sorted((rdir / "evals").glob("*.eval-own"))]
+        deleted = []
+        for p in victims:
+            if p.is_symlink() or not (p.is_file() or p.is_dir()):
+                continue
+            if base not in p.resolve().parents:
+                continue
+            shutil.rmtree(p) if p.is_dir() else p.unlink()
+            deleted.append(str(p.relative_to(rdir)))
+        return {"deleted": deleted}
 
     @app.get("/artifacts/{run_id}/{path:path}", dependencies=[Depends(auth)])
     def artifact(run_id: str, path: str):
