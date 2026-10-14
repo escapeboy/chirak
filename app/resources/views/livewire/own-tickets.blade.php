@@ -31,6 +31,13 @@
                 <label class="label" for="paste">Or paste them (put texts that contain commas in double quotes)</label>
                 <textarea id="paste" rows="8" class="input font-mono text-xs" wire:model="paste"></textarea>
             </div>
+            <div>
+                <label class="label" for="trainShare">Use part of the tickets for training</label>
+                <select id="trainShare" wire:model="trainShare" class="input !w-auto">
+                    @foreach (\App\Models\OwnSet::SHARES as $share)<option value="{{ $share }}">{{ $share === 0 ? 'None, all tickets are for evaluation' : $share.'% for training' }}</option>@endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500">The share is split off now, before labelling, and never overlaps the evaluation tickets. Both parts are labelled and reviewed here.</p>
+            </div>
             <button class="btn" wire:loading.attr="disabled" @disabled(! $unlocked)>Mask and upload</button>
         </form>
     @else
@@ -65,9 +72,15 @@
                         <span class="text-sm text-slate-600">
                             Evaluation: {{ $set->eval_state ?? 'not started' }}@if ($set->eval_stage && $set->eval_state === 'running') ({{ $set->eval_stage }})@endif
                         </span>
-                        @if (! $set->items_deleted_at && in_array($set->eval_state, ['failed', 'done']))
+                        @if (! $set->items_deleted_at && ! in_array($set->eval_state, ['pending', 'running']))
                             <button wire:click="evaluate" class="btn-secondary" @disabled(! $unlocked)>Evaluate again</button>
                         @endif
+                    @endif
+                    @if ($canTrainNewRun)
+                        <button wire:click="trainNewRun" wire:confirm="Start a new run that trains on these tickets?" class="btn-secondary" @disabled(! $unlocked)>Train a new run with these tickets</button>
+                    @endif
+                    @if ($followUp)
+                        <a href="{{ route('runs.show', $followUp) }}" class="text-sm font-medium text-brand-600 hover:underline">Follow-up run: {{ $followUp->name }}</a>
                     @endif
                     <button wire:click="deleteItems" wire:confirm="Delete the uploaded tickets and the worker's copy? Scores and counts stay." class="btn-secondary !text-red-700" @disabled(! $unlocked || $set->items_deleted_at)>Delete the tickets</button>
                 </div>
@@ -79,9 +92,14 @@
                 <div class="card">
                     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
                         <h2 class="card-title !mb-0">Tickets</h2>
-                        @unless ($set->isFrozen())
-                            <select wire:model.live="filter" class="input !w-auto"><option value="unstable">Unstable only</option><option value="all">All</option></select>
-                        @endunless
+                        <div class="flex gap-2">
+                            @if ($set->train_share > 0)
+                                <select wire:model.live="split" class="input !w-auto"><option value="all">Both parts</option><option value="eval">Evaluation</option><option value="train">Training</option></select>
+                            @endif
+                            @unless ($set->isFrozen())
+                                <select wire:model.live="filter" class="input !w-auto"><option value="unstable">Unstable only</option><option value="all">All</option></select>
+                            @endunless
+                        </div>
                     </div>
                     <ul class="space-y-3">
                         @forelse ($items as $item)
@@ -103,7 +121,7 @@
                                         </div>
                                     @endforeach
                                     <span @class(['rounded px-1.5 py-0.5 text-xs', 'bg-amber-100 text-amber-800' => $item->status === 'unstable', 'bg-slate-100 text-slate-700' => $item->status !== 'unstable'])>
-                                        {{ $item->status }}@if ($item->label_source), {{ $item->label_source }}@endif @if ($item->decided_at) {{ $item->decided_at->diffForHumans() }}@endif
+                                        @if ($set->train_share > 0){{ $item->split }}, @endif{{ $item->status }}@if ($item->label_source), {{ $item->label_source }}@endif @if ($item->decided_at) {{ $item->decided_at->diffForHumans() }}@endif
                                     </span>
                                     @if ($set->isFrozen() && $item->status === 'labelled')
                                         <button wire:click="setPublic({{ $item->id }}, {{ $item->public ? 'false' : 'true' }})" class="btn-secondary !py-1 ml-auto" @disabled(! $unlocked)>{{ $item->public ? 'Shown on public report (hide)' : 'Show on public report' }}</button>

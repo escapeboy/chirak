@@ -11,8 +11,11 @@ class OwnSet extends Model
     public const REVIEW = 'review';
     public const FROZEN = 'frozen';
 
+    /** Shares of the upload that may go to training, in percent. */
+    public const SHARES = [0, 20, 30, 50];
+
     protected $fillable = [
-        'run_id', 'state', 'requests', 'input_tokens', 'output_tokens',
+        'run_id', 'state', 'train_share', 'requests', 'input_tokens', 'output_tokens',
         'eval_state', 'eval_stage', 'worker_job_id', 'error', 'frozen_at', 'items_deleted_at', 'worker_copy_deleted_at',
     ];
 

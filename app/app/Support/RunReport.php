@@ -141,7 +141,7 @@ class RunReport
      * The "Own tickets" card: counts, who labelled, base vs adapter scores, and the few examples the owner approved.
      * No other ticket text.
      *
-     * @return ?array{n: int, label_sources: array{judge: int, human: int}, dropped: int, examples: array<int, array{text: string, label: array, label_source: ?string}>, rows: array<int, array{label: string, accuracy: ?float, macro_f1: ?float, fields: array<string, float>}>}
+     * @return ?array{n: int, train: ?array{share: int, n: int, overlap_dropped: int}, follow_up: ?\App\Models\Run, trained_from: ?array{run: \App\Models\Run, n: int}, label_sources: array{judge: int, human: int}, dropped: int, examples: array<int, array{text: string, label: array, label_source: ?string}>, rows: array<int, array{label: string, accuracy: ?float, macro_f1: ?float, fields: array<string, float>}>}
      */
     public function own(): ?array
     {
@@ -168,6 +168,9 @@ class RunReport
             'n' => $dataset->rows(),
             'label_sources' => $dataset->stats['label_sources'] ?? ['judge' => 0, 'human' => 0],
             'dropped' => (int) ($dataset->stats['dropped'] ?? 0),
+            'train' => $dataset->stats['train'] ?? null,
+            'follow_up' => $this->run->followUp,
+            'trained_from' => $this->run->trainedFrom ? ['run' => $this->run->trainedFrom, 'n' => $this->datasets->firstWhere('purpose', 'train-real')?->n ?? 0] : null,
             'examples' => $this->run->ownItems()->where('public', true)->get(['text', 'label', 'label_source'])->map->only(['text', 'label', 'label_source'])->all(),
             'rows' => $rows,
         ];

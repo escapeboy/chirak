@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -19,7 +20,7 @@ class Run extends Model
     protected $fillable = [
         'slug', 'name', 'task_spec', 'seed_examples', 'holdout_examples', 'base_model',
         'target_metric', 'target_value', 'eval_n', 'train_n', 'require_review', 'review_approved_at',
-        'status', 'stage', 'stop_reason', 'current_worker_job_id', 'served_name', 'best_iteration', 'error',
+        'status', 'stage', 'stop_reason', 'current_worker_job_id', 'served_name', 'best_iteration', 'error', 'trained_from_run_id',
     ];
 
     protected function casts(): array
@@ -65,6 +66,17 @@ class Run extends Model
     public function ownEvaluations(): HasMany
     {
         return $this->hasMany(Evaluation::class)->where('slice', 'own');
+    }
+
+    public function trainedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'trained_from_run_id');
+    }
+
+    /** The run started from this run's own training tickets, if any. */
+    public function followUp(): HasOne
+    {
+        return $this->hasOne(self::class, 'trained_from_run_id');
     }
 
     public function ownSet(): HasOne
