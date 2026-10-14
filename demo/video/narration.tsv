@@ -1,0 +1,10 @@
+title	Chirak turns a task description and a few examples into a small specialist model, fine-tuned on one AMD Instinct GPU.
+wizard	You describe the job and give a few examples. Here: support ticket triage for an online shop, in Bulgarian and English. The model must return the category, the urgency, and whether a human is needed, as strict JSON.
+eval	Before anything is trained, Chirak freezes an evaluation set with a hash, and scores the untouched four billion parameter base model on it.
+results	Results are reported on two slices. On the clean slice, the base model scores 0.84 macro F1, and the fine-tuned adapter 0.98. On the hard slice, ambiguous tickets labelled by a Claude judge, it goes from 0.77 to 0.84. The target of 0.92 was not met, and the report says so.
+leakage	Training data comes from a different prompt that never sees the eval. Near copies of eval tickets are dropped and counted, and every number here comes from stored results.
+decisions	After each iteration, Claude reads the failures and asks for targeted training data, in strict JSON. The stop rules are plain code. Here the loop stopped at the maximum of three iterations.
+holdout	The playground sends the same ticket to the base model and to the adapter, live, on the AMD GPU. This Bulgarian ticket asks where the shop's physical store is. The base model calls it a product question. The adapter says: other.
+fresh	A new ticket, typed now: ten days without a delivery, and the customer wants the money back.
+report	Every run gets a public, read only report, built from the stored results. It keeps working when the GPU is switched off.
+arch	A Laravel control plane decides. A FastAPI worker on one AMD Instinct GPU does the work, with vLLM, ROCm and PyTorch. Chirak is open source, under the MIT license.

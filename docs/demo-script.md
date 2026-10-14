@@ -1,5 +1,11 @@
 # Demo flow (record-ready)
 
+> **Recorded version (14 Oct 2026):** [chirak-demo.mp4](chirak-demo.mp4), made by
+> [demo/video/record.js](../demo/video/record.js) with the narration in
+> [demo/video/narration.tsv](../demo/video/narration.tsv). It follows the run after Task 3: two eval
+> slices, iteration 2 served, target 0.92 on the hard slice not met. The table below is the original
+> plan from before eval-hard; its 0.99 / "target met" lines describe iteration 1 on the clean slice only.
+
 Two parts: a completed run that is already in the database (`merchant-triage-g4oirl`), and a short
 live run. Every number on screen comes from the `evaluations` / `decisions` tables; nothing is typed in.
 Do not record until CHECKPOINT 2 is closed (the owner has re-run `make eval` on the final adapter).

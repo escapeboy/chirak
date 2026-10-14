@@ -10,22 +10,44 @@ track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, 
 
 ![Public report of the demo run](docs/img/report.png)
 
+Demo video (2 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
+Playwright script ([demo/video/](demo/video/)) with a synthetic voice (macOS `say`) and captions. The
+playground answers in it are live calls to the iteration-2 adapter on an MI350X.
+
 ## Result of the demo run
 
 Run `merchant-triage-g4oirl`, 13 Oct 2026, one AMD Instinct MI350X. Every number below is in the
-`evaluations` table and reproducible with `make eval` (see [docs/demo-run-log.md](docs/demo-run-log.md)).
+`evaluations` table and reproducible with `make eval ADAPTER=<path> EVAL=<eval|eval-hard>` (see
+[docs/demo-run-log.md](docs/demo-run-log.md)). Public report: **https://escapeboy.github.io/chirak/**
 
-| Model on the frozen eval (215 tickets, sha256 `6ecec925…3c9160`) | macro-F1 | urgency acc | needs_human acc | all 3 fields right | valid JSON |
+The run is measured on two frozen eval slices, reported separately:
+
+- **Clean slice** (`eval`, 215 tickets, sha256 `6ecec925…3c9160`): tickets where the 27B generator's
+  label and its own blind re-reading agree. These are the clear cases; easier than real traffic.
+- **Hard slice** (`eval-hard`, 119 tickets, sha256 `c5997a47…80a0f1`): tickets the blind check
+  rejected, re-labelled by a Claude judge (two passes) and reviewed. The 106 disagreements were
+  reviewed by Claude Code on the owner's delegation, not by a human.
+
+| macro-F1 (category) | Clean slice | Hard slice |
+|---|---|---|
+| Qwen3.5-4B, no fine-tune | 0.841 | 0.772 |
+| + Chirak LoRA, iteration 1 | 0.991 | 0.825 |
+| **+ Chirak LoRA, iteration 2 (served)** | **0.982** | **0.844** |
+| + Chirak LoRA, iteration 3 | 0.981 | 0.833 |
+
+| Hard slice, base → iteration 2 | category acc | urgency acc | needs_human acc | all 3 fields right | valid JSON |
 |---|---|---|---|---|---|
-| Qwen3.5-4B, no fine-tune | 0.84 | 0.87 | 0.77 | 0.60 | 100% |
-| + Chirak LoRA, iteration 1 | **0.99** | 0.96 | 0.95 | 0.91 | 100% |
+| | 0.82 → 0.87 | 0.78 → 0.84 | 0.82 → 0.92 | 0.59 → 0.66 | 100% → 100% |
 
-Read this with its caveat. Train and eval items both passed a blind label check by the 27B
-generator, so this eval holds the unambiguous cases and is easier than real traffic. On tickets that
-did not pass through that filter the direction is the same, on small samples: 15 seed tickets,
-category 13/15 → 15/15 and all fields 7/15 → 11/15; 5 hold-out tickets that are in no dataset file,
-4/5 → 5/5 and 2/5 → 4/5. Two earlier demo runs were discarded at the human checkpoint before any
-training; the log says why.
+The target was macro-F1 ≥ 0.92 on the hard slice. **It was not met**: the loop ran the maximum of 3
+iterations and serves iteration 2. The weak class is *complaints* (F1 0.67), mostly confused with
+*returns* and *other*. Iterations 2–3 were steered by Claude's analysis of hard-slice failures; its
+guidance sometimes describes those failures closely, and the train data moved slightly closer to
+eval-hard (no train ticket reaches cosine 0.90). Read the +1.9 pt of iteration 2 with that in mind.
+
+5 hold-out tickets that are in no dataset file (written by Claude at the owner's request, not by a
+human), all three fields right: base 2/5, iteration 2 5/5 — a spot check, not a metric. Two earlier
+demo runs were discarded at the human checkpoint before any training; the log says why.
 
 ## How it works
 
@@ -59,6 +81,9 @@ flowchart LR
 6. **Failure analysis.** Claude gets the metrics, confusion matrix and failures and answers in
    strict JSON with the next data slices. Its guidance is dropped if it shares a 5-gram with eval.
 7. **Stop rules, in code:** target met, 3 iterations, gain under 1 point, or leakage drops over 30%.
+8. **Hard slice (optional).** Tickets the blind check rejected are judged by Claude, reviewed and
+   frozen as `eval-hard`; `chirak:retarget-hard` then iterates against it while still reporting the
+   clean slice. The generator is never the final authority for eval-hard labels.
 
 The eval rules and why they exist: [docs/worker-api.md](docs/worker-api.md). Worker API contract:
 same file. Run history with the discarded runs: [docs/demo-run-log.md](docs/demo-run-log.md).
@@ -72,8 +97,9 @@ same file. Run history with the discarded runs: [docs/demo-run-log.md](docs/demo
 | LoRA training, Qwen3.5-4B, bf16 | torch 2.14.1+rocm7.2, peft 0.21.2, trl 1.15.0 | 1000 examples, 2 epochs, 130 s, 12.2 GB peak |
 | Evaluation and playground | vLLM with runtime LoRA hot-load | 215 tickets per eval at 128 concurrent requests: adapter p50 0.69 s, p95 1.28 s per request |
 
-GPU cost of the demo run itself: about 17 minutes of a $5.49/h MI350X, ≈ $1.60. All GPU time of the
-project is logged in [spike/gpu-hours.log](spike/gpu-hours.log).
+GPU cost of the demo run itself: about 17 minutes of a $5.49/h MI350X, ≈ $1.60, for iteration 1;
+building eval-hard and the two extra iterations took about 2.3 h more (≈ $12.6, about 70 min of it
+idle). All GPU time of the project is logged in [spike/gpu-hours.log](spike/gpu-hours.log).
 
 The original target was an MI300X (192 GB). The environment spike passed on it on 12 Oct; on 13 Oct
 RunPod had no MI300X in any region, so the demo moved to an MI350X (gfx950, 288 GB). The spike's
@@ -93,7 +119,7 @@ make tunnel &                              # worker on 127.0.0.1:8100, never a p
 make health-smoke generate-smoke train-smoke evaluate-smoke serve-smoke
 (cd app && cp .env.example .env && docker compose up -d && composer install && npm ci && npm run build && php artisan key:generate && php artisan migrate)
 (cd app && php artisan serve & php artisan horizon)   # open http://127.0.0.1:8000/runs/new
-make eval RUN=<run_id> ADAPTER=/data/runs/<run_id>/iter-1/adapter   # re-score any adapter on the frozen eval
+make eval RUN=<run_id> ADAPTER=/data/runs/<run_id>/iter-2/adapter EVAL=eval-hard   # re-score any adapter (or base) on a frozen eval
 ```
 
 Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; app: PHPUnit).
@@ -117,7 +143,7 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
 | `worker/` | FastAPI GPU worker: generate, train, evaluate, serve, predict ([README](worker/README.md)) |
 | `app/` | Laravel control plane: wizard, dashboard, playground, public report ([README](app/README.md)) |
 | `spike/` | Environment checks, pinned versions, pod bootstrap |
-| `demo/` | Seed tickets of the demo task |
+| `demo/` | Seed tickets of the demo task, the video recording script, the static report export |
 | `docs/` | Worker API contract, run log, RunPod notes, screenshots |
 
 ## License

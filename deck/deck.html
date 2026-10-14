@@ -94,22 +94,21 @@
 
 <section class="slide">
   <div class="kicker">Demo run · merchant ticket triage, BG/EN</div>
-  <h2 style="margin-bottom:24px">Base 0.84 → fine-tuned 0.99 macro-F1</h2>
+  <h2 style="margin-bottom:24px">Clean slice 0.84 → 0.98, hard slice 0.77 → 0.84</h2>
   <div class="grid2" style="grid-template-columns: 1.05fr 1fr; gap: 40px">
     <div>
       <table>
-        <tr><th>Frozen eval, 215 tickets</th><th>Base 4B</th><th>+ LoRA</th></tr>
-        <tr><td>macro-F1 (category)</td><td>0.84</td><td><b>0.99</b></td></tr>
-        <tr><td>urgency accuracy</td><td>0.87</td><td><b>0.96</b></td></tr>
-        <tr><td>needs_human accuracy</td><td>0.77</td><td><b>0.95</b></td></tr>
-        <tr><td>all 3 fields right</td><td>0.60</td><td><b>0.91</b></td></tr>
-        <tr><td>valid JSON</td><td>100%</td><td>100%</td></tr>
+        <tr><th>macro-F1 (category)</th><th>Clean, 215</th><th>Hard, 119</th></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.84</td><td>0.77</td></tr>
+        <tr><td>+ LoRA, iteration 1</td><td>0.99</td><td>0.83</td></tr>
+        <tr><td>+ LoRA, iteration 2 (served)</td><td><b>0.98</b></td><td><b>0.84</b></td></tr>
+        <tr><td>+ LoRA, iteration 3</td><td>0.98</td><td>0.83</td></tr>
       </table>
-      <p class="note">Eval and train passed a blind label check by the 27B generator, so this eval holds the clear cases. Unfiltered checks, small samples: 15 seed tickets, all fields 7/15 → 11/15; 5 hold-out tickets, 2/5 → 4/5. Re-scored with <span class="mono">make eval</span>: adapter 0.9907 in 3/3 runs, base 0.836–0.846.</p>
+      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored.</p>
     </div>
     <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
   </div>
-  <div class="foot"><span>Run merchant-triage-g4oirl · eval sha256 6ecec925…3c9160</span><span>5</span></div>
+  <div class="foot"><span>Run merchant-triage-g4oirl · eval 6ecec925… · eval-hard c5997a47…</span><span>5</span></div>
 </section>
 
 <section class="slide">
@@ -122,7 +121,7 @@
     <tr><td>LoRA training, Qwen3.5-4B bf16</td><td>torch 2.14.1+rocm7.2, peft, trl</td><td>1000 examples, 2 epochs, 130 s, 12 GB</td></tr>
     <tr><td>Eval and serving</td><td>vLLM, runtime LoRA hot-load</td><td>215 tickets per eval</td></tr>
   </table>
-  <p class="note">The whole demo run took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
+  <p class="note">Iteration 1 took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h; the hard slice and two more iterations about 2.3 h more. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
   <div class="foot"><span>Chirak</span><span>6</span></div>
 </section>
 
@@ -153,7 +152,7 @@
   <div class="kicker">Next</div>
   <h2>Next steps</h2>
   <ul>
-    <li><b>Harder evals:</b> a human-labelled slice next to the synthetic eval, so a 0.99 on clear cases is checked against messy real tickets.</li>
+    <li><b>Human-labelled evals:</b> the hard slice exists, but its labels come from a Claude judge and Claude Code; real tickets labelled by people are next. Complaints (F1 0.67) are the class to fix.</li>
     <li><b>Extraction tasks:</b> order numbers, products, amounts, not only classification.</li>
     <li><b>Multi-tenant runs</b> on a shared GPU with a queue, and adapters per merchant.</li>
     <li><b>Preference tuning (DPO)</b> once a classification adapter exists.</li>
