@@ -3,6 +3,7 @@
 namespace App\Services\Worker;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -39,6 +40,28 @@ class WorkerClient
     public function predict(string $model, array $taskSpec, string $input): array
     {
         return $this->post('/predict', ['model' => $model, 'task_spec' => $taskSpec, 'input' => $input], 90)->json();
+    }
+
+    /**
+     * The same input to several models at once (the playground's base vs adapter): on a CPU host each
+     * answer takes seconds, so asking in parallel halves the wait. Keyed by model.
+     */
+    public function predictMany(array $models, array $taskSpec, string $input): array
+    {
+        $responses = Http::pool(fn (Pool $pool) => array_map(
+            fn ($model) => $pool->as($model)->baseUrl(rtrim(config('chirak.worker.base_url'), '/'))
+                ->withToken((string) config('chirak.worker.token'))->acceptJson()->timeout(90)
+                ->post('/predict', ['model' => $model, 'task_spec' => $taskSpec, 'input' => $input]),
+            $models,
+        ));
+
+        return array_map(function ($response) {
+            if ($response instanceof ConnectionException) {
+                throw new WorkerUnreachable($response->getMessage(), 0, $response);
+            }
+
+            return $this->check($response)->json();
+        }, $responses);
     }
 
     /** Full health body, or null when the worker cannot be reached or rejects the token. */

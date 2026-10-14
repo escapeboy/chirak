@@ -1,6 +1,6 @@
-"""Fix a qwen35 GGUF converted from a text-only checkpoint whose config still announced the MTP layer
-(merge_adapter.py before it reset mtp_num_hidden_layers): block_count and recurrent_layers counted one
-block more than the file has, so llama.cpp refused it ("blk.32 not found"). Writes a corrected copy.
+"""Fix a qwen35 GGUF converted from merge_adapter.py's text-only checkpoint without --no-mtp: the config
+still announces the MTP layer, so block_count and recurrent_layers count one block more than the file
+has and llama.cpp refuses it ("blk.32 not found"). Writes a corrected copy.
 
 Usage: uvx --from gguf==0.17.1 python drop_mtp_gguf.py <in.gguf> <out.gguf>
 """

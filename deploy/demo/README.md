@@ -18,8 +18,8 @@ evaluated. Its own scores on every eval slice are measured with `cpu_predict eva
 # demo/cpu/merge_adapter.py + llama.cpp's convert_hf_to_gguf.py, see the scratch script in the run log
 python demo/cpu/merge_adapter.py Qwen/Qwen3.5-4B hf-base
 python demo/cpu/merge_adapter.py Qwen/Qwen3.5-4B hf-tuned /data/runs/<run>/iter-<i>/adapter
-python llama.cpp/convert_hf_to_gguf.py hf-base  --outtype q8_0 --outfile base.q8_0.gguf
-python llama.cpp/convert_hf_to_gguf.py hf-tuned --outtype q8_0 --outfile <run>-iter-<i>.q8_0.gguf
+python llama.cpp/convert_hf_to_gguf.py hf-base  --outtype q8_0 --no-mtp --outfile base.q8_0.gguf
+python llama.cpp/convert_hf_to_gguf.py hf-tuned --outtype q8_0 --no-mtp --outfile <run>-iter-<i>.q8_0.gguf
 ```
 
 ## Score the GGUF build (anywhere with llama.cpp)

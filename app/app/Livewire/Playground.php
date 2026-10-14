@@ -49,10 +49,9 @@ class Playground extends Component
         RateLimiter::hit($key, 60);
 
         try {
-            $this->base = $worker->predict('base', $this->run->task_spec, $this->input);
-            if ($this->run->served_name) {
-                $this->adapter = $worker->predict($this->run->served_name, $this->run->task_spec, $this->input);
-            }
+            $answers = $worker->predictMany(array_filter(['base', $this->run->served_name]), $this->run->task_spec, $this->input);
+            $this->base = $answers['base'];
+            $this->adapter = $this->run->served_name ? $answers[$this->run->served_name] : null;
         } catch (WorkerUnreachable) {
             $this->offline = true;
             $this->base = $this->adapter = null;

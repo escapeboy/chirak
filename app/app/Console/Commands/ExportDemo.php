@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 class ExportDemo extends Command
 {
     protected $signature = 'chirak:export-demo {dir : output directory (gets database.sqlite and storage/app/runs)} {slugs* : runs to export}
-        {--served= : override runs.served_name for the demo, as slug=name}';
+        {--served= : the one run whose adapter the demo serves, as slug=name; other runs get no served adapter}';
 
     protected $description = 'Export runs into a SQLite database for the read-only demo';
 
@@ -44,9 +44,8 @@ class ExportDemo extends Command
         $demo = DB::connection('demo');
         foreach ($runs as $run) {
             $row = (array) DB::table('runs')->where('id', $run->id)->first();
-            if ($served->has($run->slug)) {
-                $row['served_name'] = $served[$run->slug];
-            }
+            // the CPU playground serves one adapter; the other runs' playgrounds show the base model only
+            $row['served_name'] = $served[$run->slug] ?? null;
             $demo->table('runs')->insert($row);
             foreach (self::TABLES as $table) {
                 foreach (DB::table($table)->where('run_id', $run->id)->orderBy('id')->get() as $child) {

@@ -39,10 +39,8 @@ if adapter:
     delta = (dict(model.named_parameters())[name].detach() - before).abs().max().item()
     assert delta > 0, f"adapter not applied ({name} unchanged)"
     print(json.dumps({"checked": name, "max_abs_delta": delta}))
-# The text-only model drops Qwen3.5's multi-token-prediction layer (mtp.*) but keeps it in the config;
-# llama.cpp would then expect one more block than the file has (blk.32 missing).
-if getattr(model.config, "mtp_num_hidden_layers", 0):
-    model.config.mtp_num_hidden_layers = 0
+# The text-only model drops Qwen3.5's multi-token-prediction layer (mtp.*) but keeps it in the config:
+# convert with `convert_hf_to_gguf.py --no-mtp`, or llama.cpp expects one block more than the file has.
 model.save_pretrained(out, safe_serialization=True)
 AutoTokenizer.from_pretrained(base).save_pretrained(out)
 print(json.dumps({"out": str(out), "adapter": adapter, "architectures": model.config.architectures}))

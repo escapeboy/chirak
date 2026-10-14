@@ -196,3 +196,72 @@ Reproduce: `make eval RUN=merchant-triage-g4oirl ADAPTER=<base|/data/runs/mercha
 (and `eval-real-abcd-agreed`, `eval-real-tweets`) with the three files copied into the run directory.
 GPU: about 23 min (14 min of it a pod created without the template, which never started), ≈ $2.1.
 Anthropic judge: ABCD 600 requests (161k in / 30k out), tweets 800 requests (224k in / 82k out).
+
+## R1 + R2: guidelines v2 and real tickets in training (2026-10-14)
+
+Requirements: [requirements-improvements.md](requirements-improvements.md). Guidelines v2 were written
+by Claude Code (not by a human) after the real-text checks: one definition per category, tie-breaks
+for the confused pairs (tone does not decide; delivery address is shipping; a faulty item is returns),
+and rules for urgency and needs_human (`app/app/Support/TaskTemplate.php`). Seeds: `demo/seeds-v2.jsonl`
+= `demo/seeds.jsonl` with 2 labels changed where v2 disagrees (slow site: complaints → other;
+wrong phone case received, hold-out: complaints → returns). Runs 1–4 and their files are unchanged.
+
+Because v2 changes the meaning of some labels, the judge-labelled evals were re-labelled under v2 as
+new frozen files (`real-evals-2026-10-14/v2/freeze.json`, 10:25Z, before any v2 model was scored):
+`eval-real-tweets-v2` (356, sha `feaf4ad5…`), `eval-hard-v2` (108, judge-only labels, sha `e2c16e58…`),
+`eval-real-abcd-agreed-v2` (240, sha `1a91dd79…`). ABCD's scenario labels already follow v2's rules
+and stay as they were (`eval-real-abcd`, sha `f90e7577…`). With v2 the judge agrees with the ABCD
+scenarios on 80% (72% under v1): the guidelines are clearer.
+
+Runs (one MI350X pod, 10:17–):
+- **Run 5 `merchant-triage-j1zjro`** (v2, target macro-F1 0.92): stopped after the baseline, "not
+  worth fine-tuning": the base model with v2 scored 0.935 macro-F1 on its own clean eval (0.84 with
+  v1). Clearer guidelines alone fixed most of the category errors on clean synthetic tickets.
+- **Run 5b `merchant-triage-ejqchw`** (v2, target exact match 0.92, all 3 fields right): base 0.656
+  → iteration 1 0.949; target met.
+- **Run 6 `merchant-triage-orv1o6`** (v2 + real tickets, target exact match 0.92): 378 tickets from
+  the ABCD **train** split (`train-real`, sha `b7f10952…`) go into every training step next to the
+  synthetic data. Category from the writer's scenario, urgency and needs_human from the Claude judge
+  (v2), kept only where the judge's category agreed. 159 of 537 candidates were dropped as near-copies
+  of an eval item (bge-m3 cosine ≥ 0.92 or a shared 8-gram; ABCD writers reuse the same phrases); 0
+  overlap with the run's own eval after that. Base 0.651 → iteration 1 0.907 → iteration 2 0.926; target met.
+
+Same frozen files, each model with its own prompt (v1 or v2):
+
+| | ABCD (300) cat. acc | ABCD-agreed-v2 (240) | Tweets-v2 (356) cat. | urgency | needs_human | all 3 right | eval-hard-v2 (108) cat. | all 3 right |
+|---|---|---|---|---|---|---|---|---|
+| Base, v1 prompt | 0.740 | 0.833 | 0.612 | 0.469 | 0.803 | 0.292 | 0.787 | 0.518 |
+| Run 4 iter-2, v1 | 0.797 | 0.887 | 0.668 | 0.764 | 0.753 | 0.427 | 0.843 | 0.574 |
+| Base, v2 prompt | 0.787 | 0.921 | 0.694 | 0.548 | 0.801 | 0.345 | 0.880 | 0.630 |
+| Run 5b iter-1, v2 | 0.797 | 0.933 | 0.747 | 0.823 | 0.837 | 0.559 | 0.944 | 0.685 |
+| **Run 6 iter-2, v2 + real** | 0.840* | 0.975* | 0.742 | **0.846** | **0.857** | **0.593** | 0.907 | 0.667 |
+
+\* Run 6 trained on other ABCD chats, so ABCD is no longer an independent check for it (same store,
+same writing style); the tweets are. The base v2 row is shared by runs 5b and 6 (identical task spec).
+
+Caveats: the tweet and eval-hard-v2 labels come from the same Claude judge reading the same v2
+guidelines the v2 models were trained on, which favours v2 models on those files. ABCD labels do not
+depend on the guidelines: there v2 adds +4.7 pt for the base model and run 5b ties run 4.
+
+Conclusion: on real tweets, all three fields right went 0.29 (base, v1) → 0.43 (run 4) → 0.59 (run 6).
+needs_human on tweets is now above the base model (0.857 vs 0.80; it fell to 0.75 with run 4).
+Run 6 iteration 2 is the model the public demo serves.
+
+## R4: CPU playground (llama.cpp, GGUF q8_0)
+
+`demo/cpu/merge_adapter.py` merges an adapter into the text-only Qwen3.5-4B (undoing the vLLM key
+rename) and llama.cpp's `convert_hf_to_gguf.py --no-mtp` writes q8_0 GGUF (4.5 GB). Without `--no-mtp`
+the file announced Qwen3.5's multi-token-prediction block that the text-only checkpoint does not
+contain; the first two files were repaired with `demo/cpu/drop_mtp_gguf.py`. Scored with
+`chirak_worker.cpu_predict eval` (the worker's prompt, greedy decoding and parser) on llama.cpp b11429:
+
+| Run 4, same files | clean macro-F1 | eval-hard macro-F1 | eval-hard all 3 | ABCD acc | tweets acc |
+|---|---|---|---|---|---|
+| iter-2 bf16 on vLLM (GPU) | 0.9815 | 0.8441 | 0.6639 | 0.797 | 0.751 |
+| iter-2 GGUF q8_0 (CPU build, run on Metal) | 0.9769 | 0.8441 | 0.6639 | 0.800 | 0.748 |
+| base bf16 on vLLM | 0.8406 | 0.7723 | 0.5882 | 0.740 | 0.723 |
+| base GGUF q8_0 | 0.8211 | 0.7799 | 0.5798 | 0.750 | 0.726 |
+
+The q8_0 build moves each score by about one ticket. Metrics:
+`../chirak-artifacts/cpu-gguf/evals/`. GGUF sha256: base `fcde04ce…`, run 4 iter-2 `924c985c…`,
+run 6 iter-2 `551dd24a…`.
