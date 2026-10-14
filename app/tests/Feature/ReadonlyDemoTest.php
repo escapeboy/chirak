@@ -6,6 +6,7 @@ use App\Livewire\CreateRun;
 use App\Livewire\Playground;
 use App\Models\Run;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 use Tests\Support\RunsPipeline;
 use Tests\TestCase;
@@ -76,5 +77,25 @@ class ReadonlyDemoTest extends TestCase
         $this->post('/unlock', ['demo_token' => 'demo-secret']);
         Livewire::test(Playground::class, ['run' => $run])->set('input', 'Where is my parcel?')->call('predict')->assertSet('notice', null);
         $this->assertCount(6, $this->worker->sent('POST', '/predict'));
+    }
+
+    public function test_a_request_refused_for_its_address_does_not_use_the_shared_budget(): void
+    {
+        config(['chirak.playground_public' => true, 'chirak.playground_per_minute' => 1, 'chirak.playground_public_per_minute' => 2]);
+        $this->worker->iterations = [1 => 0.95];
+        $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
+
+        $one = Livewire::test(Playground::class, ['run' => $run])->set('input', 'Where is my parcel?');
+        $one->call('predict')->assertSet('notice', null);
+        $one->call('predict');
+        $this->assertStringStartsWith('Too many requests', $one->get('notice'));
+
+        // another visitor: the refused request left one of the two shared compares, the next one finds none
+        RateLimiter::clear('playground:127.0.0.1');
+        Livewire::test(Playground::class, ['run' => $run])->set('input', 'Where is my parcel?')->call('predict')->assertSet('notice', null);
+        RateLimiter::clear('playground:127.0.0.1');
+        $last = Livewire::test(Playground::class, ['run' => $run])->set('input', 'Where is my parcel?')->call('predict');
+        $this->assertStringStartsWith('The demo is busy', $last->get('notice'));
+        $this->assertCount(4, $this->worker->sent('POST', '/predict'));
     }
 }
