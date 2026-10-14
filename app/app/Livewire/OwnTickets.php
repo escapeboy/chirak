@@ -7,6 +7,7 @@ use App\Models\Run;
 use App\Services\Own\OwnTickets as Tickets;
 use App\Support\DemoToken;
 use App\Support\TicketParser;
+use Illuminate\Support\Facades\RateLimiter;
 use InvalidArgumentException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -25,12 +26,22 @@ class OwnTickets extends Component
 
     public string $filter = 'unstable';
 
+    public string $split = 'all';
+
+    /** Percent of the upload that goes to training instead of evaluation. */
+    public int $trainShare = 0;
+
     /** @var array<int, array<string, mixed>> item id => field => chosen value */
     public array $edits = [];
 
     public ?string $notice = null;
 
     public function updatedFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSplit(): void
     {
         $this->resetPage();
     }
@@ -42,7 +53,7 @@ class OwnTickets extends Component
         $content = $this->file ? (string) file_get_contents($this->file->getRealPath()) : $this->paste;
 
         try {
-            $tickets->upload($this->run, TicketParser::parse($content));
+            $tickets->upload($this->run, TicketParser::parse($content), $this->trainShare);
         } catch (InvalidArgumentException $e) {
             $this->notice = $e->getMessage();
 
@@ -113,6 +124,21 @@ class OwnTickets extends Component
         $tickets->evaluate($this->run);
     }
 
+    public function trainNewRun(Tickets $tickets)
+    {
+        $this->guard();
+        $key = 'start-run:'.request()->ip();
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $this->notice = 'At most 3 runs per hour from one address. Try again in '.ceil(RateLimiter::availableIn($key) / 60).' min.';
+
+            return null;
+        }
+        $run = $tickets->trainNewRun($this->run);
+        RateLimiter::hit($key, 3600);
+
+        return $this->redirectRoute('runs.show', $run);
+    }
+
     public function deleteItems(Tickets $tickets): void
     {
         $this->guard();
@@ -133,6 +159,9 @@ class OwnTickets extends Component
             if ($this->filter === 'unstable') {
                 $query->where('status', OwnItem::UNSTABLE);
             }
+            if (in_array($this->split, [OwnItem::EVAL, OwnItem::TRAIN], true)) {
+                $query->where('split', $this->split);
+            }
             $items = $query->paginate(25);
         }
 
@@ -140,6 +169,7 @@ class OwnTickets extends Component
             'set' => $set, 'counts' => $counts, 'items' => $items, 'unlocked' => $unlocked,
             'fields' => $run->task_spec['fields'],
             'freezable' => $tickets->freezable($run),
+            'canTrainNewRun' => $tickets->canTrainNewRun($run), 'followUp' => $run->followUp,
             'min' => TicketParser::MIN, 'max' => TicketParser::MAX,
         ])->layout('components.layouts.app', ['title' => $run->name.' own tickets']);
     }

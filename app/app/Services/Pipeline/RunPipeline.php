@@ -273,6 +273,12 @@ class RunPipeline
                 $stage = "generate_train:$i";
                 break;
             case 'train':
+                // write-once and idempotent on the worker, so a retry or a hand-made copy of the same file is fine
+                foreach ($run->datasets()->where('purpose', 'train-real')->get() as $real) {
+                    if ($real->local_path && Storage::disk('runs')->exists($real->local_path)) {
+                        $this->worker->putFile($run->slug, basename($real->remote_path), (string) Storage::disk('runs')->get($real->local_path));
+                    }
+                }
                 $config = [
                     'run_id' => $run->slug, 'iteration' => $i,
                     // real labelled tickets (purpose train-real) go into every iteration next to the synthetic files

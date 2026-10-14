@@ -10,6 +10,20 @@
         @endif
         @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. {{ $own['examples'] ? 'Apart from the examples the owner approved, the tickets are private to the run owner.' : 'The tickets themselves are private to the run owner.' }}
     </p>
+    @php($link = fn ($r) => ($public ?? true) ? route('runs.report', $r) : route('runs.show', $r))
+    @if ($own['train'])
+        <p class="mb-3 text-sm text-slate-500">
+            {{ $own['train']['share'] }}% of the uploaded tickets were set aside for training before labelling: {{ $own['train']['n'] }} went into a training file, {{ $own['n'] }} were kept for evaluation.
+            @if ($own['train']['overlap_dropped']) {{ $own['train']['overlap_dropped'] }} training tickets were left out because they repeated an evaluation ticket or shared a word 8-gram with one. @endif
+            The two parts never overlap.
+        </p>
+    @endif
+    @if ($own['trained_from'])
+        <p class="mb-3 text-sm text-slate-500">Training included {{ $own['trained_from']['n'] }} own tickets of run <a href="{{ $link($own['trained_from']['run']) }}" class="font-medium text-brand-600 hover:underline">{{ $own['trained_from']['run']->name }}</a>.</p>
+    @endif
+    @if ($own['follow_up'])
+        <p class="mb-3 text-sm text-slate-500">A follow-up run trained on the training part: <a href="{{ $link($own['follow_up']) }}" class="font-medium text-brand-600 hover:underline">{{ $own['follow_up']->name }}</a>.</p>
+    @endif
     @if ($own['rows'])
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
