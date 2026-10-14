@@ -203,6 +203,14 @@ hot-loads the adapter. `DELETE /serve/{name}` → `200 {"name": ..., "loaded": f
 `200 {"raw": "...", "parsed": {...} | null, "valid": true, "error": null, "latency_ms": 143}`.
 Returns `409` while a GPU job is holding the GPU in another mode (e.g. training).
 
+## PUT /runs/{run_id}/files/{name}
+
+Stores the request body as `/data/runs/<run_id>/<name>`. `name` must match `[a-z0-9._-]+\.jsonl`
+(`400` otherwise); the body is at most 8 MB (`413`). Files are write-once: the same content again is
+`200`, different content for an existing name is `409`. The control plane uses it to put the run's
+frozen own-tickets eval (`eval-own.jsonl`) on the worker. Answers
+`200 {"path": "/data/runs/<run_id>/<name>", "sha256": "...", "bytes": 1234}`.
+
 ## GET /artifacts/{run_id}/{path}
 
 Streams a file under `/data/runs/<run_id>/` (path traversal rejected). The control plane uses it

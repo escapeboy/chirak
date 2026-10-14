@@ -26,6 +26,12 @@ class WorkerClient
         return $this->post('/evaluate', $payload)->json('job_id');
     }
 
+    /** Stores a JSONL file as /data/runs/<run>/<name>; the worker refuses to replace it with other content. */
+    public function putFile(string $runId, string $name, string $body): array
+    {
+        return $this->send(fn () => $this->request(120)->withBody($body, 'application/x-ndjson')->put("/runs/$runId/files/$name"))->json();
+    }
+
     public function job(string $jobId): array
     {
         return $this->get('/jobs/'.$jobId)->json();

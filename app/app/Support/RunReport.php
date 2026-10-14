@@ -25,8 +25,12 @@ class RunReport
     /** Scores on eval-hard, keyed like $evaluations; empty when the run has no eval-hard. */
     public Collection $hardEvaluations;
 
+    /** Scores on the shop's own tickets, keyed like $evaluations. */
+    public Collection $ownEvaluations;
+
     public function __construct(public Run $run)
     {
+        $this->ownEvaluations = $run->ownEvaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
         $this->evaluations = $run->evaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
         $this->hardEvaluations = $run->hardEvaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
         $this->iterations = $run->iterations()->get();
@@ -126,6 +130,45 @@ class RunReport
     public function hardDataset(): ?Dataset
     {
         return $this->datasets->firstWhere('purpose', 'eval-hard');
+    }
+
+    public function ownDataset(): ?Dataset
+    {
+        return $this->datasets->firstWhere('purpose', 'eval-own');
+    }
+
+    /**
+     * The "Own tickets" card: counts, who labelled, and base vs adapter scores. Never any ticket text.
+     *
+     * @return ?array{n: int, label_sources: array{judge: int, human: int}, dropped: int, rows: array<int, array{label: string, accuracy: ?float, macro_f1: ?float, fields: array<string, float>}>}
+     */
+    public function own(): ?array
+    {
+        $dataset = $this->ownDataset();
+        if (! $dataset) {
+            return null;
+        }
+
+        $models = ['base' => 'Base model'];
+        if ($this->run->best_iteration) {
+            $models[$this->run->best_iteration] = 'Served adapter (iteration '.$this->run->best_iteration.')';
+        }
+        $rows = [];
+        foreach ($models as $key => $label) {
+            if ($e = $this->ownEvaluations->get($key)) {
+                $rows[] = [
+                    'label' => $label, 'accuracy' => $e->metrics['accuracy'] ?? null, 'macro_f1' => $e->metrics['macro_f1'] ?? null,
+                    'fields' => collect($e->metrics['fields'] ?? [])->map(fn ($f) => $f['accuracy'])->all(),
+                ];
+            }
+        }
+
+        return [
+            'n' => $dataset->rows(),
+            'label_sources' => $dataset->stats['label_sources'] ?? ['judge' => 0, 'human' => 0],
+            'dropped' => (int) ($dataset->stats['dropped'] ?? 0),
+            'rows' => $rows,
+        ];
     }
 
     /**

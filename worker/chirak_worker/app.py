@@ -1,5 +1,8 @@
 """FastAPI app implementing docs/worker-api.md. Heavy backends are injected so tests can fake them."""
+import hashlib
 import hmac
+import os
+import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Callable
@@ -21,6 +24,9 @@ from .prompts import student_messages
 from .schemas import EvaluateRequest, GenerateRequest, PredictRequest, ServeRequest, TrainRequest
 from .train import run_train
 from .vllm import LlmBackend, VllmError, VllmManager
+
+
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 
 @dataclass
@@ -172,6 +178,27 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         raw, ms = svc.llm.chat(req.model, student_messages(req.task_spec, req.input), temperature=0, max_tokens=256)
         parsed, err = parse_student_answer(raw, req.task_spec)
         return {"raw": raw, "parsed": parsed, "valid": parsed is not None, "error": err, "latency_ms": round(ms)}
+
+    @app.put("/runs/{run_id}/files/{name}", dependencies=[Depends(auth)])
+    async def put_file(run_id: str, name: str, request: Request):
+        """Store a JSONL file the control plane built (the run's own-tickets eval). Files are write-once."""
+        if not re.fullmatch(r"[a-z0-9._-]+\.jsonl", name) or name.startswith("."):
+            raise HTTPException(400, "name must match [a-z0-9._-]+.jsonl")
+        body = await request.body()
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "file too large")
+        rdir = run_dir(settings, run_id)
+        target = rdir / name
+        sha = hashlib.sha256(body).hexdigest()
+        if target.exists():
+            if hashlib.sha256(target.read_bytes()).hexdigest() != sha:
+                raise HTTPException(409, f"{name} already exists with different content")
+        else:
+            rdir.mkdir(parents=True, exist_ok=True)
+            tmp = rdir / f"{name}.tmp"
+            tmp.write_bytes(body)
+            os.replace(tmp, target)
+        return {"path": str(target), "sha256": sha, "bytes": len(body)}
 
     @app.get("/artifacts/{run_id}/{path:path}", dependencies=[Depends(auth)])
     def artifact(run_id: str, path: str):

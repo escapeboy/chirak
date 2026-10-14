@@ -35,6 +35,15 @@ class FakeWorker
     /** Queue of Anthropic answers: 'valid' | 'garbage' | 'too_many' | 'stop_true' */
     public array $claude = [];
 
+    /** Answers a tagged Anthropic call: closure(array $request): string raw text, array{text, stop_reason}, or int for an HTTP error status. */
+    public ?\Closure $labeler = null;
+
+    /** macro_f1 of the own-tickets slice for the base model and the adapter */
+    public array $own = ['base' => 0.55, 'adapter' => 0.85];
+
+    /** Content the worker holds per uploaded file name */
+    public array $files = [];
+
     /** @var array<int, array{method: string, path: string, body: array}> */
     public array $requests = [];
 
@@ -62,6 +71,16 @@ class FakeWorker
             if ($this->claudeHttpStatus) {
                 return Http::response(['error' => 'overloaded'], $this->claudeHttpStatus);
             }
+            if ($this->labeler) {
+                $answer = ($this->labeler)($request->data());
+                if (is_int($answer)) {
+                    return Http::response(['error' => 'overloaded'], $answer);
+                }
+
+                $answer = is_array($answer) ? $answer : ['text' => $answer];
+
+                return Http::response(['content' => [['type' => 'text', 'text' => $answer['text']]], 'stop_reason' => $answer['stop_reason'] ?? 'end_turn', 'usage' => ['input_tokens' => 100, 'output_tokens' => 20]]);
+            }
 
             return Http::response(['content' => [['type' => 'text', 'text' => $this->claudeAnswer($request->data())]]]);
         }
@@ -82,9 +101,20 @@ class FakeWorker
             $path === '/serve' => Http::response(['name' => $body['name'], 'loaded' => true]),
             $path === '/predict' => Http::response(['raw' => '{"category":"returns"}', 'parsed' => ['category' => 'returns'], 'valid' => true, 'error' => null, 'latency_ms' => 120]),
             $path === '/health' => Http::response(['status' => 'ok', 'gpu' => ['visible' => true, 'name' => 'AMD Instinct MI300X'], 'queue_length' => 0]),
+            preg_match('#^/runs/[^/]+/files/([^/]+)$#', $path, $m) === 1 => $this->stored($m[1], $request->body()),
             str_starts_with($path, '/artifacts/') => Http::response("{\"id\":\"x-1\",\"input\":\"Sample ticket\",\"output\":{\"category\":\"orders\"},\"source\":\"synthetic\"}\n"),
             default => Http::response(['detail' => 'not found'], 404),
         };
+    }
+
+    private function stored(string $name, string $content)
+    {
+        if (isset($this->files[$name]) && $this->files[$name] !== $content) {
+            return Http::response(['detail' => "$name already exists with different content"], 409);
+        }
+        $this->files[$name] = $content;
+
+        return Http::response(['path' => "/data/runs/x/$name", 'sha256' => hash('sha256', $content), 'bytes' => strlen($content)]);
     }
 
     private function accept(string $type, array $result)
@@ -138,6 +168,9 @@ class FakeWorker
     private function evaluated(array $b): array
     {
         $run = Run::where('slug', $b['run_id'])->firstOrFail();
+        if (str_ends_with($b['label'], '.eval-own')) {
+            return $this->evaluatedOwn($b);
+        }
         $hard = str_ends_with($b['label'], '.eval-hard');
         $label = $hard ? substr($b['label'], 0, -strlen('.eval-hard')) : $b['label'];
         $i = $label === 'base' ? 'base' : (int) substr($label, 5);
@@ -157,6 +190,20 @@ class FakeWorker
             'fields' => ['urgency' => ['accuracy' => 0.7]],
             'exact_match' => 0.5, 'latency_ms' => ['p50' => 180, 'p95' => 410],
             'failures' => [['id' => 'eval-0007', 'input' => 'Failing ticket', 'expected' => ['category' => 'returns'], 'got' => null, 'raw' => 'oops', 'error' => 'invalid json']],
+        ];
+    }
+
+    private function evaluatedOwn(array $b): array
+    {
+        $f1 = $b['label'] === 'base.eval-own' ? $this->own['base'] : $this->own['adapter'];
+
+        return [
+            'label' => $b['label'], 'model' => $b['model'], 'eval_sha256' => hash('sha256', $this->files['eval-own.jsonl'] ?? ''),
+            'n' => substr_count($this->files['eval-own.jsonl'] ?? '', "\n"), 'json_valid_rate' => 1.0, 'accuracy' => $f1 + 0.02, 'macro_f1' => $f1,
+            'per_class' => [], 'confusion' => ['labels' => [], 'matrix' => []],
+            'fields' => ['category' => ['accuracy' => $f1 + 0.02], 'urgency' => ['accuracy' => 0.7], 'needs_human' => ['accuracy' => 0.9]],
+            'exact_match' => 0.5, 'latency_ms' => ['p50' => 180, 'p95' => 410],
+            'failures' => [['id' => 'own-0001', 'input' => 'Private ticket text', 'expected' => ['category' => 'returns'], 'got' => null, 'raw' => 'oops', 'error' => 'invalid json']],
         ];
     }
 
