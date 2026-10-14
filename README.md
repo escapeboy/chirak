@@ -53,7 +53,8 @@ and why: [docs/requirements-improvements.md](docs/requirements-improvements.md).
 
 Run `merchant-triage-g4oirl`, 13 Oct 2026, one AMD Instinct MI350X. Every number below is in the
 `evaluations` table and reproducible with `make eval ADAPTER=<path> EVAL=<eval|eval-hard>` (see
-[docs/demo-run-log.md](docs/demo-run-log.md)). Public report: **https://escapeboy.github.io/chirak/**
+[docs/demo-run-log.md](docs/demo-run-log.md)). Static report: **https://escapeboy.github.io/chirak/run-4.html**
+(the start page https://escapeboy.github.io/chirak/ is run 6; runs 5 and 5b are linked from it)
 
 The run is measured on two frozen eval slices, reported separately:
 
