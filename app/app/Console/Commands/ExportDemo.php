@@ -20,8 +20,8 @@ class ExportDemo extends Command
 
     protected $description = 'Export runs into a SQLite database for the read-only demo';
 
-    /** child tables with a run_id column, in insert order */
-    private const TABLES = ['datasets', 'iterations', 'evaluations', 'decisions', 'holdout_predictions'];
+    /** child tables with a run_id column, in insert order; own_items (a shop's own tickets) stay private */
+    private const TABLES = ['datasets', 'iterations', 'evaluations', 'decisions', 'holdout_predictions', 'own_sets'];
 
     public function handle(): int
     {
@@ -54,6 +54,7 @@ class ExportDemo extends Command
             }
             if (Storage::disk('runs')->exists($run->slug)) {
                 File::copyDirectory(Storage::disk('runs')->path($run->slug), "$dir/storage/app/runs/{$run->slug}");
+                File::delete(File::glob("$dir/storage/app/runs/{$run->slug}/eval-own*"));
             }
             $this->info("{$run->slug}: exported");
         }

@@ -18,7 +18,7 @@
     @endif
 
     @if (! $set)
-        <form wire:submit="upload" class="card space-y-4">
+        <form wire:submit="uploadTickets" class="card space-y-4">
             <h2 class="card-title">Upload tickets</h2>
             <div>
                 <label class="label" for="file">CSV or JSONL file, one ticket per row (CSV: a column named <code>text</code>, else the first column)</label>

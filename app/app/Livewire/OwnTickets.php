@@ -35,7 +35,7 @@ class OwnTickets extends Component
         $this->resetPage();
     }
 
-    public function upload(Tickets $tickets): void
+    public function uploadTickets(Tickets $tickets): void
     {
         $this->guard();
         $this->validate(['file' => 'nullable|file|max:2048', 'paste' => 'nullable|string|max:2000000']);

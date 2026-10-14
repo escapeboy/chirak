@@ -47,15 +47,16 @@ class OwnTickets
     }
 
     /** The judge's label confirmed by a person. */
-    public function accept(OwnItem $item): void
+    // $by: who decided. The review screen is used by a person; a delegated agent records itself instead.
+    public function accept(OwnItem $item, string $by = 'human'): void
     {
         $this->assertOpen($item);
         abort_unless($item->status === OwnItem::LABELLED, 422, 'Only a labelled item can be accepted.');
-        $item->update(['label_source' => 'human', 'decided_at' => now()]);
+        $item->update(['label_source' => $by, 'decided_at' => now()]);
     }
 
     /** @param array<string, mixed> $values one value per field of the task spec */
-    public function change(OwnItem $item, array $values): void
+    public function change(OwnItem $item, array $values, string $by = 'human'): void
     {
         $this->assertOpen($item);
         $label = [];
@@ -72,13 +73,13 @@ class OwnTickets
             }
             $label[$field['name']] = $value;
         }
-        $item->update(['status' => OwnItem::LABELLED, 'label' => $label, 'label_source' => 'human', 'decided_at' => now()]);
+        $item->update(['status' => OwnItem::LABELLED, 'label' => $label, 'label_source' => $by, 'decided_at' => now()]);
     }
 
-    public function drop(OwnItem $item): void
+    public function drop(OwnItem $item, string $by = 'human'): void
     {
         $this->assertOpen($item);
-        $item->update(['status' => OwnItem::DROPPED, 'label' => null, 'label_source' => 'human', 'decided_at' => now()]);
+        $item->update(['status' => OwnItem::DROPPED, 'label' => null, 'label_source' => $by, 'decided_at' => now()]);
     }
 
     /** Whether the set can be frozen: judged in full, nothing unstable, at least one ticket kept. */
@@ -112,7 +113,7 @@ class OwnTickets
                 'n' => $items->count(), 'sha256' => $sha, 'frozen_at' => now(),
                 'stats' => [
                     'n_rows' => $items->count(),
-                    'label_sources' => ['judge' => $items->where('label_source', 'judge')->count(), 'human' => $items->where('label_source', 'human')->count()],
+                    'label_sources' => $items->countBy('label_source')->all() + ['judge' => 0, 'human' => 0],
                     'dropped' => $run->ownItems()->where('status', OwnItem::DROPPED)->count(),
                     'judge_usage' => $set->only(['requests', 'input_tokens', 'output_tokens']),
                 ],

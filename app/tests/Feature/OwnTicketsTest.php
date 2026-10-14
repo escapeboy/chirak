@@ -69,7 +69,7 @@ class OwnTicketsTest extends TestCase
     private function uploaded(int $n = 100)
     {
         $this->unlocked();
-        $page = Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv($n))->call('upload');
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv($n))->call('uploadTickets');
         $this->drainQueue(1000);
 
         return $page;
@@ -235,7 +235,7 @@ class OwnTicketsTest extends TestCase
         $item = $this->run->ownItems()->where('position', 2)->first();
         Livewire::test(OwnTickets::class, ['run' => $this->run])->call('drop', $item->id)->assertStatus(422);
         Livewire::test(OwnTickets::class, ['run' => $this->run])->call('freeze')->assertStatus(422);
-        Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv())->call('upload')->assertSee('already has uploaded tickets');
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv())->call('uploadTickets')->assertSee('already has uploaded tickets');
         $this->assertSame('labelled', $item->refresh()->status);
         $this->assertSame($body, Storage::disk('runs')->get($dataset->local_path));
     }
@@ -333,19 +333,19 @@ class OwnTicketsTest extends TestCase
         $page->call('deleteItems');
         $this->assertNull($this->run->ownSet()->first());
 
-        $page->set('paste', $this->csv())->call('upload');
+        $page->set('paste', $this->csv())->call('uploadTickets');
         $this->assertSame(100, $this->run->ownItems()->count());
     }
 
     public function test_uploads_outside_100_to_1000_tickets_are_refused_and_a_file_works_too(): void
     {
         $this->unlocked();
-        $page = Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv(50))->call('upload');
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run])->set('paste', $this->csv(50))->call('uploadTickets');
         $page->assertSee('found 50');
         $this->assertNull($this->run->ownSet()->first());
         Queue::assertNotPushed(LabelOwnItem::class);
 
-        $page->set('file', UploadedFile::fake()->createWithContent('tickets.csv', $this->csv(120)))->call('upload');
+        $page->set('file', UploadedFile::fake()->createWithContent('tickets.csv', $this->csv(120)))->call('uploadTickets');
         $this->assertSame(120, $this->run->ownItems()->count());
         Queue::assertPushed(LabelOwnItem::class, 120);
         Queue::assertNotPushed(EvaluateOwnSet::class);

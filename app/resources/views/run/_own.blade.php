@@ -5,6 +5,9 @@
     <h2 class="card-title">Own tickets</h2>
     <p class="mb-3 text-sm text-slate-500">
         {{ $own['n'] }} of the shop's own tickets, masked and frozen as a separate slice. Labels: {{ $own['label_sources']['judge'] }} by the Claude judge, {{ $own['label_sources']['human'] }} by a person
+        @if ($own['label_sources']['claude-code-delegated'] ?? 0)
+            and {{ $own['label_sources']['claude-code-delegated'] }} by Claude Code on the owner's delegation (not a person)
+        @endif
         @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. The tickets themselves are private to the run owner.
     </p>
     @if ($own['rows'])
