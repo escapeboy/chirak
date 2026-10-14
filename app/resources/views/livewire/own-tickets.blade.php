@@ -17,7 +17,9 @@
         <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ $notice }}</div>
     @endif
 
-    @if (! $set)
+    @if (! $set && config('chirak.readonly'))
+        <div class="card text-sm text-slate-600">This is a read-only demo without a GPU worker or a Claude key, so own tickets cannot be uploaded here. Runs that have own-ticket scores show them on their report.</div>
+    @elseif (! $set)
         <form wire:submit="uploadTickets" class="card space-y-4">
             <h2 class="card-title">Upload tickets</h2>
             <div>

@@ -132,6 +132,7 @@ class OwnTickets extends Component
 
     private function guard(): void
     {
+        abort_if(config('chirak.readonly'), 403, 'This read-only demo has no GPU worker and no Claude key: tickets cannot be uploaded or changed here.');
         abort_unless(DemoToken::unlocked(), 403, 'Enter the demo token to change the tickets.');
     }
 

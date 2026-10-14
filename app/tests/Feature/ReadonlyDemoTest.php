@@ -32,6 +32,10 @@ class ReadonlyDemoTest extends TestCase
         $this->worker->iterations = [1 => 0.95];
         $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
         $this->get("/runs/{$run->slug}/playground")->assertSeeText('CPU build of iteration 2 (GGUF q8_0).');
+
+        $this->get("/runs/{$run->slug}/tickets")->assertSeeText('own tickets cannot be uploaded here');
+        Livewire::test(\App\Livewire\OwnTickets::class, ['run' => $run])->set('paste', 'a')->call('uploadTickets')->assertForbidden();
+        $this->assertSame(0, $run->ownItems()->count());
     }
 
     public function test_playground_is_rate_limited_per_address(): void
