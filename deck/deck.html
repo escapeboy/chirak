@@ -93,36 +93,70 @@
 </section>
 
 <section class="slide">
-  <div class="kicker">Demo run · merchant ticket triage, BG/EN</div>
-  <h2 style="margin-bottom:24px">Clean slice 0.84 → 0.98, hard slice 0.77 → 0.84</h2>
+  <div class="kicker">Best result · run 6 · merchant ticket triage, BG/EN</div>
+  <h2 style="margin-bottom:24px">All three fields right: 0.65 → 0.93, target met</h2>
+  <div class="grid2" style="grid-template-columns: 1fr 1.15fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>Run 6, exact match</th><th>Score</th></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.651</td></tr>
+        <tr><td>+ LoRA, iteration 1</td><td>0.907</td></tr>
+        <tr><td>+ LoRA, iteration 2 (served)</td><td><b style="color:var(--green)">0.926</b></td></tr>
+      </table>
+      <p class="note">Run 6 (<span class="mono">merchant-triage-orv1o6</span>): clearer guidelines (v2) plus 378 real support chats from the ABCD train split in every training step. Target 0.92 met, so the loop stopped. Exact match means category, urgency and needs_human all correct, on run 6&rsquo;s frozen synthetic eval (215 tickets). Its blind label check kept only unambiguous tickets, so this set is easier than real text: see the right-hand tables.</p>
+    </div>
+    <div>
+      <table>
+        <tr><th>Real tweets, 356, all 3 right</th><th>Score</th></tr>
+        <tr><td>Base 4B (run 6 base: 0.35)</td><td>0.29 – 0.35</td></tr>
+        <tr><td>Run 4, synthetic data only</td><td>0.43</td></tr>
+        <tr><td>Run 5b</td><td>0.56</td></tr>
+        <tr><td>Run 6</td><td><b style="color:var(--green)">0.59</b></td></tr>
+      </table>
+      <table style="margin-top:18px">
+        <tr><th>Own tickets, 146 (run 6)</th><th>Base</th><th>Run 6</th></tr>
+        <tr><td>category</td><td>67.8%</td><td>71.2%</td></tr>
+        <tr><td>urgency</td><td>47.9%</td><td>80.1%</td></tr>
+        <tr><td>needs_human</td><td>76.7%</td><td>85.6%</td></tr>
+      </table>
+      <p class="note">Labels on the real tweets come from Claude, not from people. Live CPU playground: chirak.fleetq.net</p>
+    </div>
+  </div>
+  <div class="foot"><span>Run merchant-triage-orv1o6 · real text labelled by Claude</span><span>5</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The first step · run 4 · synthetic data only</div>
+  <h2 style="margin-bottom:24px">Run 4: clean slice 0.84 → 0.98, hard slice 0.77 → 0.84, target not met</h2>
   <div class="grid2" style="grid-template-columns: 1.05fr 1fr; gap: 40px">
     <div>
       <table>
-        <tr><th>macro-F1 (category)</th><th>Clean, 215</th><th>Hard, 119</th></tr>
+        <tr><th>Run 4, macro-F1 (category)</th><th>Clean, 215</th><th>Hard, 119</th></tr>
         <tr><td>Base 4B, no fine-tune</td><td>0.84</td><td>0.77</td></tr>
         <tr><td>+ LoRA, iteration 1</td><td>0.99</td><td>0.83</td></tr>
         <tr><td>+ LoRA, iteration 2 (served)</td><td><b>0.98</b></td><td><b>0.84</b></td></tr>
         <tr><td>+ LoRA, iteration 3</td><td>0.98</td><td>0.83</td></tr>
       </table>
-      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored. On human-written text the gain is smaller; run 6 (clearer guidelines + real chats in training) gets all three fields right on 0.59 of real retail tweets (base 0.29). Live: chirak.fleetq.net</p>
+      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored. Run 6 on the previous slide fixed what run 4 left open.</p>
     </div>
     <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
   </div>
-  <div class="foot"><span>Run merchant-triage-g4oirl · eval 6ecec925… · eval-hard c5997a47…</span><span>5</span></div>
+  <div class="foot"><span>Run merchant-triage-g4oirl (run 4) · eval 6ecec925… · eval-hard c5997a47…</span><span>6</span></div>
 </section>
 
 <section class="slide">
   <div class="kicker">Built on AMD</div>
   <h2>Everything runs on one AMD Instinct GPU</h2>
   <table>
-    <tr><th>Step</th><th>Stack</th><th>Demo run on MI350X</th></tr>
+    <tr><th>Step</th><th>Stack</th><th>Run 4 on MI350X</th></tr>
     <tr><td>Data generation, Qwen3.8-27B</td><td>vLLM 0.31 on ROCm 7.2</td><td>1000 train items from 3923 candidates, ~6 min</td></tr>
     <tr><td>Leakage guard, bge-m3</td><td>PyTorch ROCm</td><td>same GPU</td></tr>
     <tr><td>LoRA training, Qwen3.5-4B bf16</td><td>torch 2.14.1+rocm7.2, peft, trl</td><td>1000 examples, 2 epochs, 130 s, 12 GB</td></tr>
     <tr><td>Eval and serving</td><td>vLLM, runtime LoRA hot-load</td><td>215 tickets per eval</td></tr>
   </table>
   <p class="note">Iteration 1 took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h; the hard slice and two more iterations about 2.3 h more. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
-  <div class="foot"><span>Chirak</span><span>6</span></div>
+  <p style="margin-top:26px;font-size:26px"><b>How it is split:</b> a Laravel 12 control plane (run state machine, stop rules, Claude failure analyst, public reports that work with the GPU off) and a FastAPI GPU worker (/generate, /train, /evaluate, /serve, /predict) reached only through an SSH tunnel. Open source, MIT; tests need no GPU.</p>
+  <div class="foot"><span>Chirak</span><span>7</span></div>
 </section>
 
 <section class="slide">
@@ -134,17 +168,6 @@
     <div class="card"><h3>Agencies</h3><p>Integrators who build support tooling for many small merchants and need a repeatable way to produce and prove a small model per client.</p></div>
   </div>
   <p class="note">This slide is a plan, not traction: there are no customers yet.</p>
-  <div class="foot"><span>Chirak</span><span>7</span></div>
-</section>
-
-<section class="slide">
-  <div class="kicker">Architecture</div>
-  <h2>Control plane decides, GPU worker executes</h2>
-  <div class="grid2">
-    <div class="card"><h3>Control plane · Laravel 12</h3><p>Livewire 3 UI and Tailwind v4, MariaDB, Horizon queues. Run state machine, stop rules, Claude failure analyst, public read-only reports that keep working when the GPU is off.</p></div>
-    <div class="card"><h3>GPU worker · FastAPI</h3><p>Async jobs: /generate, /train, /evaluate, /serve, /predict. Bound to localhost; reached only through an SSH tunnel with a bearer token. Artifacts under /data/runs/&lt;run&gt;/.</p></div>
-  </div>
-  <p style="margin-top:36px">Open source under MIT. The worker API is a written contract, so the GPU side can move to any ROCm host. Tests run without a GPU: pytest with a fake vLLM, PHPUnit with a fake worker.</p>
   <div class="foot"><span>Chirak</span><span>8</span></div>
 </section>
 
