@@ -202,11 +202,14 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         return {"path": str(target), "sha256": sha, "bytes": len(body)}
 
     @app.delete("/runs/{run_id}/own", dependencies=[Depends(auth)])
-    def delete_own(run_id: str):
-        """Remove the run's own-tickets eval file and its eval-own results (they repeat ticket texts). Idempotent."""
+    def delete_own(run_id: str, train_real: bool = False):
+        """Remove the run's own-tickets eval file and its eval-own results (they repeat ticket texts), and with
+        train_real its train-real.jsonl, when that file holds a shop's own tickets. Idempotent."""
         rdir = run_dir(settings, run_id)
         base = rdir.resolve()
         victims = [rdir / "eval-own.jsonl", *sorted((rdir / "evals").glob("*.eval-own"))]
+        if train_real:
+            victims.append(rdir / "train-real.jsonl")
         deleted = []
         for p in victims:
             if p.is_symlink() or not (p.is_file() or p.is_dir()):

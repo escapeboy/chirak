@@ -101,17 +101,20 @@ class FakeWorker
             $path === '/serve' => Http::response(['name' => $body['name'], 'loaded' => true]),
             $path === '/predict' => Http::response(['raw' => '{"category":"returns"}', 'parsed' => ['category' => 'returns'], 'valid' => true, 'error' => null, 'latency_ms' => 120]),
             $path === '/health' => Http::response(['status' => 'ok', 'gpu' => ['visible' => true, 'name' => 'AMD Instinct MI300X'], 'queue_length' => 0]),
-            $request->method() === 'DELETE' && preg_match('#^/runs/[^/]+/own$#', $path) === 1 => $this->deletedOwn(),
+            $request->method() === 'DELETE' && preg_match('#^/runs/[^/]+/own$#', $path) === 1 => $this->deletedOwn(str_contains($url['query'] ?? '', 'train_real=1')),
             preg_match('#^/runs/[^/]+/files/([^/]+)$#', $path, $m) === 1 => $this->stored($m[1], $request->body()),
             str_starts_with($path, '/artifacts/') => Http::response("{\"id\":\"x-1\",\"input\":\"Sample ticket\",\"output\":{\"category\":\"orders\"},\"source\":\"synthetic\"}\n"),
             default => Http::response(['detail' => 'not found'], 404),
         };
     }
 
-    private function deletedOwn()
+    private function deletedOwn(bool $trainReal)
     {
-        $deleted = isset($this->files['eval-own.jsonl']) ? ['eval-own.jsonl'] : [];
-        unset($this->files['eval-own.jsonl']);
+        $names = $trainReal ? ['eval-own.jsonl', 'train-real.jsonl'] : ['eval-own.jsonl'];
+        $deleted = array_values(array_filter($names, fn ($n) => isset($this->files[$n])));
+        foreach ($names as $n) {
+            unset($this->files[$n]);
+        }
 
         return Http::response(['deleted' => $deleted]);
     }

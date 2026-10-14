@@ -22,6 +22,8 @@ class OwnTickets
 {
     public const MAX_PUBLIC = 5;
 
+    private const ACTIVE = [Run::QUEUED, Run::RUNNING, Run::WAITING_FOR_WORKER, Run::AWAITING_REVIEW];
+
     /**
      * @param string[] $texts raw ticket texts; only their masked form is stored
      * @param int $trainShare percent of the tickets set aside for training before any labelling, one of OwnSet::SHARES
@@ -230,6 +232,12 @@ class OwnTickets
         $set = $run->ownSet()->first();
         abort_unless($set, 404);
         abort_if(in_array($set->eval_state, ['pending', 'running'], true), 422, 'Wait for the evaluation to finish first.');
+        // the follow-up run trains on copies of these tickets; deleting them under a running pipeline would break it
+        $follow = $run->followUp;
+        foreach (array_filter([$follow, $run->trained_from_run_id ? $run : null]) as $training) {
+            abort_if(in_array($training->status, self::ACTIVE, true), 422, "Run {$training->slug} is still training on these tickets; wait for it to finish first.");
+        }
+        abort_if(in_array($follow?->ownSet()->value('eval_state'), ['pending', 'running'], true), 422, 'Wait for the follow-up run\'s evaluation to finish first.');
 
         $run->ownItems()->delete();
         if ($set->isFrozen()) {
@@ -243,10 +251,22 @@ class OwnTickets
                 Storage::disk('runs')->delete($train->local_path);
                 $train->update(['local_path' => null]);
             }
+            if ($run->trained_from_run_id) {
+                foreach ($run->datasets()->where('purpose', 'train-real')->whereNotNull('local_path')->get() as $real) {
+                    if (str_starts_with($real->stats['source'] ?? '', 'own tickets of run')) {
+                        Storage::disk('runs')->delete($real->local_path);
+                        $real->update(['local_path' => null]);
+                    }
+                }
+            }
             $set->update(['items_deleted_at' => now()]);
             DeleteOwnWorkerCopy::dispatch($run->id);
         } else {
             $set->delete();
+        }
+        // the owner deletes their tickets everywhere: the follow-up run's copies go too
+        if ($follow?->ownSet()->whereNull('items_deleted_at')->exists()) {
+            $this->deleteItems($follow);
         }
     }
 

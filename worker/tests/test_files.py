@@ -88,3 +88,12 @@ def test_delete_own_needs_the_token(settings, services):
     anon = TestClient(create_app(settings, services))
     r = anon.delete("/runs/demo-run/own")
     assert r.status_code == 401 and r.json() == {"detail": "unauthorized"}
+
+
+def test_delete_own_removes_train_real_only_when_asked(client, settings):
+    rdir = _own_run(settings)
+    (rdir / "train-real.jsonl").write_text("x")
+    assert "train-real.jsonl" not in client.delete("/runs/demo-run/own").json()["deleted"]
+    assert (rdir / "train-real.jsonl").exists()
+    assert client.delete("/runs/demo-run/own?train_real=1").json() == {"deleted": ["train-real.jsonl"]}
+    assert not (rdir / "train-real.jsonl").exists()

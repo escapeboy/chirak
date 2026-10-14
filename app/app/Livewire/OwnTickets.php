@@ -156,7 +156,8 @@ class OwnTickets extends Component
         $items = null;
         if ($set && $unlocked) {
             $query = $run->ownItems();
-            if ($this->filter === 'unstable') {
+            // a frozen set has no unstable items and no filter select, so it lists everything
+            if ($this->filter === 'unstable' && ! $set->isFrozen()) {
                 $query->where('status', OwnItem::UNSTABLE);
             }
             if (in_array($this->split, [OwnItem::EVAL, OwnItem::TRAIN], true)) {

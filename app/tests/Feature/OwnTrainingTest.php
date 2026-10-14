@@ -235,4 +235,41 @@ class OwnTrainingTest extends TestCase
         $this->assertSame(0, OwnItem::where('run_id', $this->run->id)->count());
         Livewire::test(OwnTickets::class, ['run' => $this->run])->assertDontSee('Train a new run');
     }
+
+    public function test_deleting_the_tickets_also_deletes_the_follow_up_runs_copies(): void
+    {
+        $this->worker->iterations = [1 => 0.95];
+        $this->frozen();
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('trainNewRun');
+        $follow = Run::where('trained_from_run_id', $this->run->id)->firstOrFail();
+
+        // refused while the follow-up run still trains on the copies
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('deleteItems')->assertStatus(422);
+        $this->assertSame(70, $follow->ownItems()->count());
+
+        $this->drainQueue();
+        $this->assertSame(Run::COMPLETED, $follow->refresh()->status);
+        $this->assertArrayHasKey('train-real.jsonl', $this->worker->files);
+        $real = $follow->datasets()->where('purpose', 'train-real')->sole();
+        $own = $follow->datasets()->where('purpose', 'eval-own')->sole();
+
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('deleteItems');
+        $this->drainQueue();
+
+        $this->assertSame(0, OwnItem::whereIn('run_id', [$this->run->id, $follow->id])->count());
+        $this->assertFalse(Storage::disk('runs')->exists($real->local_path));
+        $this->assertFalse(Storage::disk('runs')->exists($own->local_path));
+        $this->assertNull($real->refresh()->local_path);
+        $this->assertNotNull($follow->ownSet()->first()->items_deleted_at);
+        $this->assertNotNull($follow->ownSet()->first()->worker_copy_deleted_at);
+        $this->assertArrayNotHasKey('train-real.jsonl', $this->worker->files);
+        $this->assertNotEmpty($this->worker->sent('DELETE', "/runs/{$follow->slug}/own"));
+    }
+
+    public function test_a_frozen_set_lists_every_ticket(): void
+    {
+        $this->frozen();
+
+        $this->assertSame(100, Livewire::test(OwnTickets::class, ['run' => $this->run])->viewData('items')->total());
+    }
 }

@@ -34,7 +34,7 @@ class DeleteOwnWorkerCopy implements ShouldQueue
         }
 
         try {
-            $worker->deleteOwn($run->slug);
+            $worker->deleteOwn($run->slug, (bool) $run->trained_from_run_id);
             $set->update(['worker_copy_deleted_at' => now()]);
         } catch (WorkerUnreachable) {
             self::dispatch($run->id, $this->attempt + 1)->delay(now()->addSeconds(min(300, 15 * 2 ** min($this->attempt, 5))));
