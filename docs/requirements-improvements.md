@@ -1,6 +1,9 @@
 # Improvements after the real-text checks — requirements
 
 Status (14 Oct 2026, evening): **R1–R4 done**; results in [demo-run-log.md](demo-run-log.md).
+R3 follow-ups done the same evening: deleting the tickets also deletes the worker's copy (`DELETE /runs/{id}/own`),
+and the owner can approve up to 5 examples for the public report. **Not done: R3.6** (part of the uploaded
+tickets as training data); it needs a GPU run to show any effect and is left for after the hackathon.
 Open questions were settled by default after the owner said to do all four: Claude Code wrote the
 guidelines; R2 uses real tickets as training data (in a separate run, so its effect is visible); the
 tweets stay evaluation-only; the demo is at chirak.fleetq.net (owner's choice).
