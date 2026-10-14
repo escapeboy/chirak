@@ -24,3 +24,5 @@
 2026-10-14T12:23:34Z STOP 1pt556bl9350ny (runs 5/5b/6 done, GGUF built; volume kept for the R3 end-to-end check)
 2026-10-14T12:25:28Z RESUME 1pt556bl9350ny (R3 end-to-end: own tickets evaluated on the GPU worker)
 2026-10-14T12:43:14Z TERMINATE 1pt556bl9350ny (R1-R4 done; artifacts in chirak-artifacts/mi350-2026-10-14-pod5 and cpu-gguf)
+2026-10-14T14:47:47Z START r0t94jnwntzu0o CPU $0.06/h (copy spike evidence off network volume 729cerk1o4 before deleting it)
+2026-10-14T14:49:54Z TERMINATE r0t94jnwntzu0o; DELETE pod jyipvchu8hbclj and network volume 729cerk1o4 (spike evidence copied to chirak-artifacts/mi300x-2026-10-12-spike; models/venv re-downloadable; balance $56.03, spend $0/h)

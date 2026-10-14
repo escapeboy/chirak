@@ -1,8 +1,9 @@
 # Spike setup — RunPod, 1× AMD MI300X
 
 Status: **all 8 steps PASS on 2026-10-12** (pod `jyipvchu8hbclj`, EU-RO-1). A value is
-`[verified]` because the matching spike step printed PASS on the pod; the evidence is `/data/spike/out/results.tsv` and
-`/data/spike/out/versions.txt`. How to (re)create the pod: [docs/runpod.md](../docs/runpod.md).
+`[verified]` because the matching spike step printed PASS on the pod; the evidence is `spike/out/results.tsv` and
+`spike/out/versions.txt`, copied on 2026-10-14 from the network volume (since deleted) to
+`chirak-artifacts/mi300x-2026-10-12-spike/` (140 files, byte totals checked). How to (re)create the pod: [docs/runpod.md](../docs/runpod.md).
 
 The pod is a container. There is no OS-level setup: the base comes from the pod image,
 and everything below "Added on top" is added on top of it. Durable state (models, runs, venv backup) lives on the network volume at `/data`.
