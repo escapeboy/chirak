@@ -8,7 +8,7 @@
         @if ($own['label_sources']['claude-code-delegated'] ?? 0)
             and {{ $own['label_sources']['claude-code-delegated'] }} by Claude Code on the owner's delegation (not a person)
         @endif
-        @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. The tickets themselves are private to the run owner.
+        @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. {{ $own['examples'] ? 'Apart from the examples the owner approved, the tickets are private to the run owner.' : 'The tickets themselves are private to the run owner.' }}
     </p>
     @if ($own['rows'])
         <div class="overflow-x-auto">
@@ -32,6 +32,20 @@
         <p class="mt-2 text-xs text-slate-500">Accuracy is on the primary field; the field columns are the accuracy of each field on its own.</p>
     @else
         <p class="text-sm text-slate-500">Scores appear once the evaluation has run.</p>
+    @endif
+    @if ($own['examples'])
+        <h3 class="mt-4 text-sm font-semibold">Examples the owner approved</h3>
+        <ul class="mt-2 space-y-2">
+            @foreach ($own['examples'] as $example)
+                <li class="rounded-lg border border-slate-200 p-3 text-sm">
+                    <p>{{ $example['text'] }}</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        @foreach ($example['label'] as $name => $value){{ $name }}: {{ is_bool($value) ? ($value ? 'true' : 'false') : $value }}@if (! $loop->last), @endif @endforeach
+                        &middot; labelled by {{ $example['label_source'] }}
+                    </p>
+                </li>
+            @endforeach
+        </ul>
     @endif
 </div>
 @elseif (! ($public ?? true))

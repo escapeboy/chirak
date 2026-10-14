@@ -326,6 +326,136 @@ class OwnTicketsTest extends TestCase
         $this->get(route('runs.report', $this->run))->assertOk()->assertSee('99 of the shop');
     }
 
+    private function frozenAndEvaluated(): void
+    {
+        $this->uploaded();
+        $this->review();
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('freeze');
+        $this->drainQueue();
+    }
+
+    public function test_deleting_the_tickets_also_deletes_the_worker_copy(): void
+    {
+        $this->frozenAndEvaluated();
+        $this->assertArrayHasKey('eval-own.jsonl', $this->worker->files);
+
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run])->call('deleteItems');
+        $this->assertNull($this->run->ownSet()->first()->worker_copy_deleted_at);
+        $page->assertSee('Worker copy: deletion pending');
+        $this->drainQueue();
+
+        $this->assertCount(1, $this->worker->sent('DELETE', "/runs/{$this->run->slug}/own"));
+        $this->assertArrayNotHasKey('eval-own.jsonl', $this->worker->files);
+        $this->assertNotNull($this->run->ownSet()->first()->worker_copy_deleted_at);
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->assertSee('Worker copy deleted');
+    }
+
+    public function test_an_unreachable_worker_keeps_the_worker_copy_deletion_pending_and_it_is_retried(): void
+    {
+        $this->frozenAndEvaluated();
+        $this->worker->offline = true;
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('deleteItems');
+        $this->drainQueue(3);
+
+        $this->assertNull($this->run->ownSet()->first()->worker_copy_deleted_at);
+        $this->assertArrayHasKey('eval-own.jsonl', $this->worker->files);
+
+        $this->worker->offline = false;
+        $this->drainQueue();
+        $this->assertNotNull($this->run->ownSet()->first()->worker_copy_deleted_at);
+        $this->assertArrayNotHasKey('eval-own.jsonl', $this->worker->files);
+    }
+
+    public function test_deleting_before_the_freeze_never_calls_the_worker(): void
+    {
+        $this->uploaded()->call('deleteItems');
+        $this->drainQueue();
+
+        $this->assertSame([], $this->worker->sent('DELETE', "/runs/{$this->run->slug}/own"));
+    }
+
+    public function test_at_most_five_examples_can_be_approved_and_only_after_the_freeze(): void
+    {
+        $this->uploaded();
+        $this->review();
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run]);
+        $first = $this->run->ownItems()->where('status', 'labelled')->first();
+        $page->call('setPublic', $first->id, true)->assertStatus(422); // not frozen yet
+
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('freeze');
+        $this->drainQueue();
+        $items = $this->run->ownItems()->where('status', 'labelled')->orderBy('position')->get();
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run]);
+        foreach ($items->take(5) as $item) {
+            $page->call('setPublic', $item->id, true);
+        }
+        $this->assertSame(5, $this->run->ownItems()->where('public', true)->count());
+
+        $page->call('setPublic', $items[5]->id, true)->assertSee('At most 5 examples');
+        $this->assertSame(5, $this->run->ownItems()->where('public', true)->count());
+
+        $page->call('setPublic', $items[0]->id, false)->call('setPublic', $items[5]->id, true);
+        $this->assertSame([false, true], [$items[0]->refresh()->public, $items[5]->refresh()->public]);
+
+        $dropped = $this->run->ownItems()->where('status', 'dropped')->first();
+        $page->call('setPublic', $dropped->id, true)->assertStatus(422);
+        $this->assertFalse($dropped->refresh()->public);
+    }
+
+    public function test_approving_an_example_needs_the_demo_token_and_a_writable_demo(): void
+    {
+        $this->frozenAndEvaluated();
+        $item = $this->run->ownItems()->where('status', 'labelled')->first();
+
+        $this->flushSession();
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('setPublic', $item->id, true)->assertForbidden();
+        $this->unlocked();
+        config(['chirak.readonly' => true]);
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('setPublic', $item->id, true)->assertForbidden();
+        $this->assertFalse($item->refresh()->public);
+    }
+
+    public function test_the_public_report_shows_only_the_approved_examples_and_deleting_removes_them(): void
+    {
+        $this->frozenAndEvaluated();
+        $items = $this->run->ownItems()->where('status', 'labelled')->orderBy('position')->get();
+        $page = Livewire::test(OwnTickets::class, ['run' => $this->run]);
+        $page->call('setPublic', $items[0]->id, true)->call('setPublic', $items[1]->id, true);
+
+        $this->flushSession();
+        $html = $this->get(route('runs.report', $this->run))->assertOk()->getContent();
+        $this->assertStringContainsString('Examples the owner approved', $html);
+        $this->assertStringContainsString('ticket 1 from', $html);
+        $this->assertStringContainsString('ticket 2 from', $html);
+        $this->assertStringContainsString('shipping', $html);
+        $this->assertStringContainsString('labelled by judge', $html);
+        $this->assertStringNotContainsString('ticket 3 from', $html);
+        $this->assertStringNotContainsString('mail.bg', $html);
+
+        $this->unlocked();
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('deleteItems');
+        $html = $this->get(route('runs.report', $this->run))->assertOk()->getContent();
+        $this->assertStringNotContainsString('ticket 1 from', $html);
+        $this->assertStringNotContainsString('Examples the owner approved', $html);
+    }
+
+    public function test_the_demo_export_carries_only_the_approved_own_items(): void
+    {
+        $this->frozenAndEvaluated();
+        $items = $this->run->ownItems()->where('status', 'labelled')->orderBy('position')->get();
+        Livewire::test(OwnTickets::class, ['run' => $this->run])->call('setPublic', $items[0]->id, true);
+
+        $dir = sys_get_temp_dir().'/chirak-export-'.uniqid();
+        $this->artisan('chirak:export-demo', ['dir' => $dir, 'slugs' => [$this->run->slug]])->assertSuccessful();
+
+        $demo = new \PDO("sqlite:$dir/database.sqlite");
+        $rows = $demo->query('select position, text, label_source, public from own_items')->fetchAll(\PDO::FETCH_ASSOC);
+        $this->assertCount(1, $rows);
+        $this->assertSame([$items[0]->position, $items[0]->text, 1], [(int) $rows[0]['position'], $rows[0]['text'], (int) $rows[0]['public']]);
+        $this->assertSame([], glob("$dir/storage/app/runs/{$this->run->slug}/eval-own*"));
+        \Illuminate\Support\Facades\File::deleteDirectory($dir);
+    }
+
     public function test_deleting_before_the_freeze_clears_the_set_so_a_new_upload_is_possible(): void
     {
         $page = $this->uploaded();

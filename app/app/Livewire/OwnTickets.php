@@ -81,6 +81,20 @@ class OwnTickets extends Component
         $tickets->drop($this->item($id));
     }
 
+    public function setPublic(Tickets $tickets, int $id, bool $public): void
+    {
+        $this->guard();
+
+        try {
+            $tickets->setPublic($this->item($id), $public);
+        } catch (InvalidArgumentException $e) {
+            $this->notice = $e->getMessage();
+
+            return;
+        }
+        $this->notice = null;
+    }
+
     public function relabel(Tickets $tickets): void
     {
         $this->guard();

@@ -33,6 +33,12 @@ class WorkerClient
         return $this->send(fn () => $this->request(120)->withBody($body, 'application/x-ndjson')->put("/runs/$runId/files/$name"))->json();
     }
 
+    /** Removes the run's own-tickets file and eval-own results from the worker. Idempotent. @return array{deleted: string[]} */
+    public function deleteOwn(string $runId): array
+    {
+        return $this->send(fn () => $this->request()->delete("/runs/$runId/own"))->json();
+    }
+
     public function job(string $jobId): array
     {
         return $this->get('/jobs/'.$jobId)->json();
