@@ -265,3 +265,44 @@ contain; the first two files were repaired with `demo/cpu/drop_mtp_gguf.py`. Sco
 The q8_0 build moves each score by about one ticket. Metrics:
 `../chirak-artifacts/cpu-gguf/evals/`. GGUF sha256: base `fcde04ce…`, run 4 iter-2 `924c985c…`,
 run 6 iter-2 `551dd24a…`.
+
+## R3: a shop's own tickets, end to end (2026-10-14)
+
+Built on branch `feat/r3-own-tickets` by a separate agent, merged into main, then run end to end on
+run 6 through the browser. The end-to-end run found two defects the feature tests had missed: the
+Livewire action was named `upload`, which is also `$wire.upload` (Livewire's own file-upload API), so
+the real button stored nothing (renamed `uploadTickets`); and review decisions were always recorded as
+`human` (they now record who decided; `label_source` was widened by an additive migration).
+
+Input: 150 first tweets of customer threads to the same retailers, sampled from TwCS and never used
+in any eval or training file (`own-tickets-150.origin.json`). Masked on upload; Claude (two passes,
+the student's prompt, guidelines v2) gave a stable label to 128; the 22 unstable ones were reviewed
+by Claude Code on the owner's delegation: 18 labelled, 4 dropped as ambiguous. Frozen: 146 tickets,
+sha256 `d04ea746…`, label sources judge 128, claude-code-delegated 18. Judge usage 300 requests,
+217k in / 46k out. Evaluated on the GPU worker (run 6, iteration 2 served):
+
+| Own tickets (146) | category acc | macro-F1 | urgency | needs_human | all 3 right |
+|---|---|---|---|---|---|
+| Base, v2 prompt | 0.678 | 0.585 | 0.480 | 0.767 | 0.329 |
+| Run 6 iteration 2 | 0.712 | 0.602 | 0.801 | 0.856 | 0.548 |
+
+These agree with the tweets-v2 eval (0.345 → 0.593 all three right). The public demo shows the scores
+and counts only; `chirak:export-demo` never copies the tickets.
+
+## Public demo (R4), deployed 2026-10-14
+
+https://chirak.fleetq.net on fleetq-01 (`deploy/demo/`): runs 4, 5, 5b and 6 exported to SQLite, app
+in read-only mode, playground on CPU with run 6 iteration 2 (GGUF q8_0, `551dd24a…`) and the base
+model (`fcde04ce…`), 2 threads and 6 GB each. Measured through the app on that host: first request
+~30 s per model (the long system prompt), then 4–6 s per model; base and adapter are asked in parallel,
+so a comparison takes ~6 s. DNS `chirak.fleetq.net` A → fleetq-01, proxied by Cloudflare; vhost in the
+shared nginx-proxy, which joined the network `chirak_proxy`. Demo token: 1Password, AI Agent vault,
+"Chirak demo token".
+
+## Burn, 14 Oct
+
+GPU (MI350X, $5.49/h): real-text evals 23 min (14 of them a pod created without the template); runs
+5/5b/6, GGUF builds and external evals 10:17–12:23 and 12:28–12:46 ≈ 2.4 h. RunPod balance after:
+$6.30. Anthropic judge on 14 Oct: 4,658 requests, 2.72M input / 0.46M output tokens (real-text labels v1
+and v2, ABCD train labels, eval-hard v2: 4,358 requests, 2.51M / 0.42M, summed from the
+`*.judge.stats.json` files; own tickets: 300 requests, 0.22M / 0.05M).

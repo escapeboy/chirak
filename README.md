@@ -10,11 +10,43 @@ track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, 
 
 ![Public report of the demo run](docs/img/report.png)
 
+**Live demo: https://chirak.fleetq.net** — stored run reports and a playground that answers on CPU
+(read-only: no GPU there, so no new runs; the playground needs the demo token).
+
 Demo video (2 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
 Playwright script ([demo/video/](demo/video/)) with a synthetic voice (macOS `say`) and captions. The
 playground answers in it are live calls to the iteration-2 adapter on an MI350X.
 
-## Result of the demo run
+## Where it stands (14 Oct 2026)
+
+The best model is run 6 (`merchant-triage-orv1o6`): clearer labelling guidelines (v2) plus 378 real,
+human-written support chats in the training data next to the synthetic ones. Scored on text written by
+people, which the earlier runs were not tuned against:
+
+| All three fields right (category, urgency, needs_human) | Real tweets to retailers, 356 | A shop's own tickets, 146 |
+|---|---|---|
+| Qwen3.5-4B, no fine-tune, first guidelines | 0.29 | – |
+| Run 4 iteration 2 (synthetic data only, first guidelines) | 0.43 | – |
+| Qwen3.5-4B, no fine-tune, guidelines v2 | 0.35 | 0.33 |
+| **Run 6 iteration 2 (guidelines v2 + real chats)** | **0.59** | **0.55** |
+
+- *Real tweets*: first customer tweets to Amazon, Target, M&S, eBay and Argos (2017, CC BY-NC-SA),
+  labelled by a Claude judge under guidelines v2. *Own tickets*: another 146 such tweets, never used
+  anywhere else, run through the new "bring your own tickets" flow (mask personal data, Claude labels
+  twice, review, freeze, score); its 18 review decisions were made by Claude Code on the owner's
+  delegation, not by a person. Both sets favour v2 models somewhat, since their labels follow v2.
+- On ABCD store chats, whose labels do not depend on the guidelines, category accuracy is 0.74 (base)
+  → 0.80 (run 4) → 0.84 (run 6; but run 6 trained on other ABCD chats).
+- Clearer guidelines alone lifted the base model from 0.84 to 0.935 macro-F1 on clean synthetic
+  tickets; a run that only targets category stops there with "not worth fine-tuning". The gains
+  from fine-tuning are now in urgency and needs_human.
+- The playground serves run 6 as a GGUF q8_0 build on CPU (llama.cpp); on the same files it scores
+  within a few tickets of the bf16 model the GPU evaluated.
+
+Full tables, caveats and every file hash: [docs/demo-run-log.md](docs/demo-run-log.md). What changed
+and why: [docs/requirements-improvements.md](docs/requirements-improvements.md).
+
+## Result of the first demo run (run 4)
 
 Run `merchant-triage-g4oirl`, 13 Oct 2026, one AMD Instinct MI350X. Every number below is in the
 `evaluations` table and reproducible with `make eval ADAPTER=<path> EVAL=<eval|eval-hard>` (see
@@ -99,6 +131,12 @@ flowchart LR
 8. **Hard slice (optional).** Tickets the blind check rejected are judged by Claude, reviewed and
    frozen as `eval-hard`; `chirak:retarget-hard` then iterates against it while still reporting the
    clean slice. The generator is never the final authority for eval-hard labels.
+9. **Real tickets in training (optional).** `chirak:attach-train-real` adds labelled real tickets to
+   every training step; near-copies of any eval item are dropped first.
+10. **The shop's own tickets.** Upload 100–1000 tickets: emails, phones, IBANs, card and order numbers
+    are masked on the server, Claude labels each ticket twice, a person reviews the unstable ones,
+    the set is frozen and the base model and the served adapter are scored on it. The public report
+    shows only the scores, never the tickets.
 
 The eval rules and why they exist: [docs/worker-api.md](docs/worker-api.md). Worker API contract:
 same file. Run history with the discarded runs: [docs/demo-run-log.md](docs/demo-run-log.md).
@@ -148,6 +186,9 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
   who set the scope, the eval rules and the human checkpoints.
 - The 20 seed tickets in `demo/seeds.jsonl` were written by Claude at the owner's request, not by a
   human; eval rows built from them carry `source: "seed"`.
+- Guidelines v2 (14 Oct) were written by Claude Code, not by a human, after the owner asked for all
+  the improvements in docs/requirements-improvements.md to be done. The review of unstable labels on eval-hard and on
+  the own-ticket set was also done by Claude Code on the owner's delegation; both are labelled so.
 - Unsloth was the planned trainer. It refuses to import without bitsandbytes, which this project
   rules out, so training uses the documented fallback: transformers + peft + trl.
 
@@ -159,7 +200,8 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
 | `app/` | Laravel control plane: wizard, dashboard, playground, public report ([README](app/README.md)) |
 | `spike/` | Environment checks, pinned versions, pod bootstrap |
 | `demo/` | Seed tickets of the demo task, real-text eval builders (`real/`), the video recording script, the static report export |
-| `docs/` | Worker API contract, run log, RunPod notes, screenshots |
+| `deploy/demo/` | The public read-only demo: Laravel + CPU playground (llama.cpp) behind the shared proxy |
+| `docs/` | Worker API contract, run log, requirements, RunPod notes, screenshots |
 
 ## License
 
