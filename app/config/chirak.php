@@ -20,6 +20,10 @@ return [
     'readonly' => (bool) env('CHIRAK_READONLY', false),
     'playground_note' => env('CHIRAK_PLAYGROUND_NOTE'),
     'playground_per_minute' => (int) env('CHIRAK_PLAYGROUND_PER_MINUTE', 20),
+    // Playground without the demo token (the public demo, for judges). Visitors without the token share one
+    // budget per minute on top of the per-address limit: two 2-CPU llama.cpp servers answer about 7 compares a minute.
+    'playground_public' => (bool) env('CHIRAK_PLAYGROUND_PUBLIC', false),
+    'playground_public_per_minute' => (int) env('CHIRAK_PLAYGROUND_PUBLIC_PER_MINUTE', 6),
 
     'stop' => [
         'max_iterations' => 3,

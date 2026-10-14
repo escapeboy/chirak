@@ -45,5 +45,7 @@ sudo docker exec nginx-proxy nginx -t && sudo docker exec nginx-proxy nginx -s r
 
 DNS: `chirak.fleetq.net` A 195.201.195.167, proxied by Cloudflare (same as the other fleetq.net hosts).
 
-Limits: llama servers 2 CPUs and 6 GB each, predict 0.5 CPU, app 1 CPU; playground 20 requests per
-minute per address and only after the demo token.
+Limits: llama servers 2 CPUs and 6 GB each, predict 0.5 CPU, app 1 CPU. The playground is open without
+the demo token (`CHIRAK_PLAYGROUND_PUBLIC=1`): 5 compares a minute per address, and 6 a minute for all
+visitors without the token together (about what the two CPU servers answer); the token holder skips the
+shared budget. Set `CHIRAK_PLAYGROUND_PUBLIC=0` to require the token again.
