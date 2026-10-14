@@ -13,10 +13,12 @@ track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, 
 **Live demo: https://chirak.fleetq.net** — stored run reports and a playground that answers on CPU
 (read-only: no GPU there, so no new runs; the playground needs the demo token).
 
-Demo video (2 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
-Playwright script ([demo/video/](demo/video/)) with a synthetic voice (macOS `say`) and captions. The
-playground answers in it are live calls to the iteration-2 adapter on an MI350X. It shows run 4,
-before guidelines v2 and the real-text work below.
+Demo video (2.5 min): [docs/chirak-demo.mp4](docs/chirak-demo.mp4). Recorded on 14 Oct 2026 by a
+Playwright script ([demo/video/](demo/video/)) with captions and a synthetic voice (Kokoro, local
+open-weights TTS). It shows run 6 (guidelines v2 + real ABCD text in training) on the live demo,
+including its own-tickets slice; the playground answers in it are live calls to the CPU (GGUF q8_0)
+copies of the base model and the iteration-2 adapter on chirak.fleetq.net. The wizard scene is filmed
+on a local copy of the app, because the public demo has no wizard.
 
 ## Where it stands (14 Oct 2026)
 
