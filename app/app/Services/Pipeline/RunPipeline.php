@@ -225,7 +225,17 @@ class RunPipeline
                 ? PollWorkerJob::dispatch($run->id, $attempt + 1)->delay($delay)
                 : AdvanceRun::dispatch($run->id, $attempt + 1)->delay($delay);
         } catch (WorkerRejected $e) {
-            $this->fail($run, 'worker rejected the request ('.$e->status.'): '.$e->getMessage());
+            if ($e->status !== 409 || ! str_starts_with($e->getMessage(), 'GPU is busy')) {
+                $this->fail($run, 'worker rejected the request ('.$e->status.'): '.$e->getMessage());
+
+                return;
+            }
+            // another run holds the GPU (the worker runs one generate or train job at a time): wait like for an outage
+            $run->update(['status' => Run::WAITING_FOR_WORKER, 'error' => $e->getMessage()]);
+            $delay = now()->addSeconds(min(300, 15 * 2 ** min($attempt, 5)));
+            $run->current_worker_job_id
+                ? PollWorkerJob::dispatch($run->id, $attempt + 1)->delay($delay)
+                : AdvanceRun::dispatch($run->id, $attempt + 1)->delay($delay);
         }
     }
 

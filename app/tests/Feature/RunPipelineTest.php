@@ -245,6 +245,22 @@ class RunPipelineTest extends TestCase
         $this->assertSame(1, count(array_filter($this->worker->sent('POST', '/generate'), fn ($r) => $r['body']['purpose'] === 'eval')));
     }
 
+    public function test_a_gpu_busy_with_another_run_makes_the_run_wait_instead_of_failing(): void
+    {
+        $run = $this->makeRun(['require_review' => false]);
+        $this->worker->busyWith = 'generate';
+
+        $run = $this->startAndDrain($run, 3);
+        $this->assertSame(Run::WAITING_FOR_WORKER, $run->status);
+        $this->assertSame('GPU is busy with a generate job', $run->error);
+
+        $this->worker->busyWith = null;
+        $this->drainQueue();
+        $run->refresh();
+        $this->assertSame(Run::COMPLETED, $run->status, (string) $run->error);
+        $this->assertNull($run->error);
+    }
+
     public function test_worker_job_failure_fails_the_run_with_the_worker_error(): void
     {
         $this->worker->failNextJob = 'worker restarted';

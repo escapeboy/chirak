@@ -15,6 +15,9 @@ class FakeWorker
 
     public bool $offline = false;
 
+    /** Type of another run's job that holds the GPU: GPU calls answer 409 "GPU is busy" while set. */
+    public ?string $busyWith = null;
+
     /** Error message for the next accepted job, which then ends as failed. */
     public ?string $failNextJob = null;
 
@@ -92,6 +95,10 @@ class FakeWorker
         $path = $url['path'];
         $body = $request->data();
         $this->requests[] = ['method' => $request->method(), 'path' => $path, 'body' => $body];
+
+        if ($this->busyWith && in_array($path, ['/generate', '/train', '/evaluate', '/serve'], true)) {
+            return Http::response(['detail' => "GPU is busy with a {$this->busyWith} job"], 409);
+        }
 
         return match (true) {
             $path === '/generate' => $this->accept('generate', $this->generated($body)),
