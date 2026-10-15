@@ -1,7 +1,7 @@
 <?php
 
 // Creates the store-review run the same way the wizard does (App\Livewire\CreateRun::start) and starts its pipeline.
-// php app/artisan tinker --execute "require 'demo/bgstores/create_run.php';"   with BGSTORES_DIR=<dir with seeds.jsonl, holdout.jsonl>
+// php app/artisan tinker --execute "require 'demo/bgstores/create_run.php';"   with BGSTORES_DIR=<dir with seeds.jsonl, holdout.jsonl> [BGSTORES_TASK=<task json>, default task.json]
 
 use App\Models\Run;
 use App\Services\Pipeline\RunPipeline;
@@ -9,7 +9,7 @@ use App\Support\ExamplesParser;
 use App\Support\TaskSpec;
 use Illuminate\Support\Str;
 
-$task = json_decode(file_get_contents(__DIR__.'/task.json'), true);
+$task = json_decode(file_get_contents(getenv('BGSTORES_TASK') ?: __DIR__.'/task.json'), true);
 $dir = getenv('BGSTORES_DIR');
 $spec = ['name' => Str::slug($task['name']), 'description' => $task['description'], 'languages' => $task['languages'],
     'fields' => $task['fields'], 'guidelines' => $task['guidelines']];

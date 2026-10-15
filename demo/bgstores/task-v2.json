@@ -1,0 +1,27 @@
+{
+  "name": "Store review triage (BG) v2",
+  "description": "Sort customer reviews of a Bulgarian online store by what the shop should do with them: thank the customer, fix a problem, look at both, or consider an idea.",
+  "languages": [
+    "bg"
+  ],
+  "fields": [
+    {
+      "name": "category",
+      "type": "enum",
+      "primary": true,
+      "values": [
+        "compliment",
+        "complaint",
+        "mixed",
+        "suggestion"
+      ]
+    }
+  ],
+  "guidelines": "Reviews come from Bulgarian review sites. Many end with a short list of pros and then a short list of cons or wishes, without headings.\ncategory: the overall point of the review for the shop. Read the whole review, including the lists at the end.\n- compliment: the experience was good and the review says so; any remark about a problem is minor and passing (\"a bit slow\", \"delivery is a little expensive\"), and there is no concrete proposal that the review dwells on.\n- complaint: the review is mainly about something that went wrong or that the reviewer dislikes: an order not delivered, late or cancelled, goods shown as in stock that are not, a wrong item, a hidden fee or high price, a faulty product, rude or silent staff, a site they dislike. Praise, if any, is brief. A complaint that ends with a demand or advice is still a complaint.\n- mixed: the review gives clear weight to both sides: a real positive experience and a real problem the reviewer had (\"fast delivery, but the phone came without a receipt\"), and neither side clearly dominates.\n- suggestion: the review proposes a concrete change for the shop (what to add, fix or improve: \"add order tracking\", \"better photos and descriptions\", \"update stock more often\", \"only the delivery time could be improved\") and that proposal is one of its main points. Usually the rest of the review is positive or neutral; short reviews of praise plus one concrete improvement are suggestions.",
+  "target_metric": "macro_f1",
+  "target_value": 0.95,
+  "eval_n": 200,
+  "train_n": 1000,
+  "require_review": true,
+  "guidelines_note": "v2 (16 Oct 2026): written by Claude Code after reading only the dev half of the train split (demo/bgstores/split_dev_check.py) and Jev's disagreements with its labels; the check half and the test split were not read. Not written by a human."
+}
