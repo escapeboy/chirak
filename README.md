@@ -72,7 +72,8 @@ before scoring. The task guidelines were written by Claude Code from the train s
   did not measurably help over synthetic data alone (difference 0.00 accuracy, +0.02 macro-F1).
 - On its own synthetic eval each run went 0.90 → 0.98 macro-F1 in one iteration. Real reviews are much
   harder than that eval suggests, which is why Chirak scores real data as a separate slice.
-- Both runs together: 57 GPU minutes on one MI350X, about $5.
+- Both runs together: 57 GPU minutes on one MI350X, about $5. Reports: [run 7](https://escapeboy.github.io/chirak/run-7.html),
+  [run 7b](https://escapeboy.github.io/chirak/run-7b.html) (also on the live demo).
 
 ## Result of the first demo run (run 4)
 
