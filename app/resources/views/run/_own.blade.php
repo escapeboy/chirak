@@ -3,17 +3,18 @@
 @if ($own)
 <div class="card">
     <h2 class="card-title">Own tickets</h2>
+    @php($private = $own['examples'] ? 'Apart from the examples the owner approved, the tickets are private to the run owner.' : 'The tickets themselves are private to the run owner.')
+    @if ($own['label_sources']['dataset'] ?? 0)
+    <p class="mb-3 text-sm text-slate-500">{{ $own['n'] }} of the shop's own tickets, masked and frozen as a separate slice. They came with labels made by people: {{ $own['label_origin'] }}. Neither the judge nor Chirak changed them. {{ $private }}</p>
+    @else
     <p class="mb-3 text-sm text-slate-500">
-        @if ($own['label_sources']['dataset'] ?? 0)
-        {{ $own['n'] }} of the shop's own tickets, masked and frozen as a separate slice. They were uploaded with their labels: {{ $own['label_origin'] }}. Neither the judge nor Chirak changed them
-        @else
         {{ $own['n'] }} of the shop's own tickets, masked and frozen as a separate slice. Labels: {{ $own['label_sources']['judge'] }} by the Claude judge, {{ $own['label_sources']['human'] }} by a person
         @if ($own['label_sources']['claude-code-delegated'] ?? 0)
             and {{ $own['label_sources']['claude-code-delegated'] }} by Claude Code on the owner's delegation (not a person)
         @endif
-        @endif
-        @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. {{ $own['examples'] ? 'Apart from the examples the owner approved, the tickets are private to the run owner.' : 'The tickets themselves are private to the run owner.' }}
+        @if ($own['dropped']) ({{ $own['dropped'] }} dropped in review)@endif. {{ $private }}
     </p>
+    @endif
     @php($link = fn ($r) => ($public ?? true) ? route('runs.report', $r) : route('runs.show', $r))
     @if ($own['train'])
         <p class="mb-3 text-sm text-slate-500">

@@ -39,7 +39,7 @@
     @endif
 
     <div class="grid gap-6 md:grid-cols-2">
-        @foreach ([['Base model', $base, $storedBase, true], ['Tuned adapter'.($run->served_name ? '' : ' (not served yet)'), $adapter, $storedAdapter, (bool) $run->served_name]] as [$title, $result, $stored, $available])
+        @foreach ([['Base model', $base, $storedBase, true], ['Tuned adapter'.($run->served_name ? '' : ' (not served)'), $adapter, $storedAdapter, (bool) $run->served_name]] as [$title, $result, $stored, $available])
             <div class="card">
                 <h2 class="card-title">{{ $title }}</h2>
                 @if ($result)
@@ -64,7 +64,7 @@
                         @endforeach
                     </ul>
                 @elseif (! $available)
-                    <p class="text-sm text-slate-500">The adapter is served after the run completes.</p>
+                    <p class="text-sm text-slate-500">{{ $run->best_iteration ? 'This adapter is not served here. Its scores are in the run report.' : 'The adapter is served after the run completes.' }}</p>
                 @else
                     <p class="text-sm text-slate-500">No prediction yet.</p>
                 @endif

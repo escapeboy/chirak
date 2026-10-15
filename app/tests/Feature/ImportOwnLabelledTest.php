@@ -65,7 +65,7 @@ class ImportOwnLabelledTest extends TestCase
 
         $this->drainQueue();
         $this->assertSame(2, $this->run->ownEvaluations()->count(), 'base and the served adapter are scored');
-        $this->get(route('runs.report', $this->run))->assertOk()->assertSee('uploaded with their labels: people at the source', false);
+        $this->get(route('runs.report', $this->run))->assertOk()->assertSee('They came with labels made by people: people at the source. Neither', false);
     }
 
     public function test_a_follow_up_run_trains_on_the_imported_training_part(): void
