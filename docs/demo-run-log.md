@@ -384,3 +384,85 @@ demo, does not enforce the length.
 
 GPU: 57 min on MI350X ($5.49/h) ≈ $5.0; RunPod balance after: $51.05. No Anthropic judge calls (the labels
 came with the data); the failure analyst was not called, since both runs met the target after iteration 1.
+
+## Store reviews, second round: a larger held-out set, guidelines v2, Jev (2026-10-15)
+
+Goal (owner): a stronger model and a stronger measurement. Owner agreed to new guidelines built without
+touching the evaluation data, to any budget needed, and to reporting a null result as it is.
+
+**A larger held-out set.** The 700 real train reviews of run 7b (near-copies of test reviews removed) were
+split by label with a fixed seed (`demo/bgstores/split_dev_check.py`, `split.json` 09:56Z): **dev** (349) is
+read and may be trained on; **check** (351) is never read or trained on. Held-out = the 182 test reviews +
+check = **533 reviews**, frozen as one own slice (eval-own sha256 `d23711e4…6659`, the texts after PII
+masking). Run 7 never saw any of them, so it was re-scored on the same file (`make eval … EVAL=eval-heldout533`).
+
+**Jev** (TypeSafe System One, hosted, `jev-latest`; `demo/bgstores/jev_classify.py`, one choice question per
+review with the class descriptions of the guidelines). The reviews are public (CC BY 4.0), so sending them
+out is allowed; a shop's private tickets would not be. Used three ways:
+1. as a hosted reference classifier, without any training (rows "Jev" below);
+2. as a second opinion on the human labels of the dev half: when Jev is ≥ 0.99 sure it agrees with the label
+   in 97% of cases (228 reviews), at 0.6–0.9 in 68%. Its 45 disagreements show how the authors labelled:
+   short praise plus one concrete improvement is often "suggestion"; a complaint that ends with advice stays
+   "complaint"; several "mixed" labels are plain complaints or compliments;
+3. to compare guideline wordings on the dev half without a GPU: v1 0.871 / 0.689, v2 with a strict "mixed"
+   0.851 / 0.718, v2 with a looser "mixed" 0.857 / 0.724 (accuracy / macro-F1). The last one became
+   guidelines v2 (`demo/bgstores/task-v2.json`). **Written by Claude Code from the dev half only, not by a
+   person.** One caveat: Jev was scored once on the 533 held-out reviews with the strict wording before the
+   choice (0.826 / 0.650); the choice itself was made on dev.
+
+Jev also labelled run 8's 1000 synthetic training reviews: it agreed with the generator's intended label on
+96%, so filtering synthetic data with Jev would remove little. The gap is between synthetic and real text.
+
+**Runs** (one MI350X pod, 09:59–11:28 UTC; same 15 seeds and 5 hold-outs as run 7; every checkpoint approved
+by Claude Code on the owner's instruction after the leakage counts and the base score; for run 8 also after
+10 eval and 10 train items):
+- Run 8 `store-review-triage-bg-v2-n1u8oy`: guidelines v2, synthetic data only. Synthetic eval 0.940 → 0.958.
+- Run 8b `store-review-triage-bg-v2-own-tickets-0tkgbq`: follow-up of run 8 ("Train a new run with these
+  tickets"), + the dev half with its human labels (348; 1 near-copy of a held-out review dropped at the freeze).
+- Run 8c `store-review-triage-bg-v2-jev-cleaned-dev-nteaym`: + the dev half without the 13 reviews where Jev
+  disagreed with the label at ≥ 0.9 and without the same near-copy (335).
+- Runs 8d `…-v2-r2-human-u2bgim` and 8e `…-v2-r2-jev-za7pl2`: repeats of 8b's and 8c's training data, to see
+  how much two runs with the same setup differ (each run generates its own synthetic data).
+`demo/real/leakage_real.py` found no other near-copies between the real training files and any eval.
+
+**On the 533 held-out reviews labelled by people** (`demo/bgstores/compare.py`, paired bootstrap, 5000
+resamples; full output `../chirak-artifacts/bgstores-2026-10-15/v2/compare-533.txt`):
+
+| | Accuracy | Macro-F1 | Δ accuracy vs run 7, 95% CI | Δ macro-F1 vs run 7, 95% CI |
+|---|---|---|---|---|
+| Base, guidelines v1 | 0.782 | 0.667 | −0.060 [−0.092, −0.028] | −0.026 [−0.078, +0.027] |
+| Base, guidelines v2 | 0.732 | 0.608 | −0.111 [−0.144, −0.079] | −0.084 [−0.137, −0.032] |
+| Run 7 (v1, synthetic) | 0.842 | 0.692 | | |
+| Run 8 (v2, synthetic) | 0.833 | 0.700 | −0.009 [−0.034, +0.015] | +0.008 [−0.041, +0.059] |
+| Run 8b (v2 + dev, human labels) | 0.826 | 0.699 | −0.017 [−0.041, +0.009] | +0.006 [−0.048, +0.063] |
+| Run 8d (repeat of 8b) | 0.848 | 0.729 | +0.006 [−0.017, +0.028] | +0.036 [−0.012, +0.087] |
+| Run 8c (v2 + dev cleaned by Jev) | 0.846 | 0.730 | +0.004 [−0.019, +0.026] | +0.038 [−0.011, +0.089] |
+| Run 8e (repeat of 8c) | **0.850** | **0.738** | +0.008 [−0.015, +0.030] | +0.046 [−0.000, +0.094] |
+| Jev, hosted, v1 descriptions | 0.856 | 0.676 | +0.013 [−0.009, +0.036] | −0.016 [−0.068, +0.031] |
+| Jev, hosted, v2 descriptions | 0.846 | 0.714 | +0.004 [−0.023, +0.032] | +0.022 [−0.043, +0.086] |
+
+What this says:
+- Fine-tuning helps on real reviews: run 7 is 6 points more accurate than the base model, and the interval
+  excludes zero.
+- **None of the improvements is proven.** Guidelines v2 plus real training data move macro-F1 up by 3–5
+  points in four runs, but every interval includes zero (8e's lower bound is −0.000). Two runs with the same
+  setup differ by 2–3 points (8b vs 8d), which is as large as the effects being tested. Cleaning the real data
+  with Jev gave 0.846/0.730 and 0.850/0.738, against 0.826/0.699 and 0.848/0.729 with the human labels: at
+  most a point or two, within that noise.
+- The self-hosted 4B adapter is as good as Jev, a hosted classifier, on these reviews: no difference in
+  accuracy, and macro-F1 trends higher (run 8e − Jev v1: +0.062 [−0.001, +0.126]).
+- Guidelines v2 made the base model worse (0.732 vs 0.782) while the adapters trained on them did as well
+  or better: wording that suits people and Jev does not have to suit a 4B model without training.
+- Run 8e is the best of six runs chosen on these same reviews, so its own number is slightly optimistic; the
+  four v2-plus-real runs average 0.843 / 0.724.
+
+Reproduce one row: `make eval RUN=<slug> ADAPTER=/data/runs/<slug>/iter-1/adapter EVAL=eval-own` (run 7:
+`EVAL=eval-heldout533`). Artifacts (all six runs, predictions, logs; 161 files sha256-checked against the pod):
+`../chirak-artifacts/mi350-2026-10-15-bgstores-v2/`; Jev outputs: `../chirak-artifacts/bgstores-2026-10-15/jev/`.
+
+Defect found on the way: a run whose worker call got 409 "GPU is busy" (another run held the GPU) failed for
+good; run 8c failed that way while serving its adapter. It now waits and retries like during an outage
+(commit b9d76ea), and run 8c was resumed from where it stopped.
+
+GPU: 1 h 29 min on MI350X ≈ $8.3; RunPod balance after: $42.71. Jev: about 4,200 calls (dev three times, check, test, the
+533 set three times, 1000 synthetic reviews). No Anthropic calls.

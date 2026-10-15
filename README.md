@@ -55,25 +55,32 @@ and why: [docs/requirements-improvements.md](docs/requirements-improvements.md).
 The labels on real text above come from a Claude judge. To check Chirak against people, a second task
 uses a public dataset labelled by its authors: 906 Bulgarian reviews of 87 online stores (otzivi.bg,
 pazaruvaj.com; Georgieva-Trifonova et al., Harvard Dataverse, doi:10.7910/DVN/TXIK9P, **CC BY 4.0**),
-each a compliment, complaint, mixed review or suggestion. Chirak got 15 reviews from the train split as
-seeds; the 182 test reviews were uploaded as the run's own slice with their human labels and not opened
-before scoring. The task guidelines were written by Claude Code from the train split, not by a person.
+each a compliment, complaint, mixed review or suggestion. Chirak got 15 real reviews as seeds. The
+models are scored on **533 held-out reviews** that no model trained on and nobody read while building the
+task: the 182 test reviews plus a "check" half of the train split. The other half ("dev", 349) was used to
+write guidelines v2 and as real training data. All guidelines were written by Claude Code, not by a person.
 
-| 182 test reviews, labels by people | Accuracy | Macro-F1 |
+| 533 held-out reviews, labels by people | Accuracy | Macro-F1 |
 |---|---|---|
-| Always "compliment" | 0.65 | – |
-| Qwen3.5-4B, no fine-tune | 0.76 | 0.62 |
-| Run 7 (synthetic data from 15 seeds) | **0.84** | 0.70 |
-| Run 7b (the same + 700 real labelled reviews in training) | **0.84** | 0.71 |
+| Always "compliment" | 0.61 | – |
+| Qwen3.5-4B, no fine-tune | 0.78 | 0.67 |
+| Run 7: synthetic data from 15 seeds | 0.84 | 0.69 |
+| Runs 8b–8e: guidelines v2 + 335–348 real dev reviews (four runs) | 0.83–0.85 | 0.70–0.74 |
+| **Run 8e**, best of these | **0.85** | **0.74** |
+| Jev (TypeSafe, a hosted classifier), no training | 0.85–0.86 | 0.68–0.71 |
 
-- Accuracy rose by 7.7 points; a paired bootstrap puts run 7's gain between +1.6 and +13.7 (95%). Macro-F1
-  rose too, but with 6 suggestions and 25 mixed reviews in the test split its interval includes zero.
-- Run 7b was started from run 7's page with "Train a new run with these tickets". The 700 real reviews
-  did not measurably help over synthetic data alone (difference 0.00 accuracy, +0.02 macro-F1).
-- On its own synthetic eval each run went 0.90 → 0.98 macro-F1 in one iteration. Real reviews are much
-  harder than that eval suggests, which is why Chirak scores real data as a separate slice.
-- Both runs together: 57 GPU minutes on one MI350X, about $5. Reports: [run 7](https://escapeboy.github.io/chirak/run-7.html),
-  [run 7b](https://escapeboy.github.io/chirak/run-7b.html) (also on the live demo).
+- Fine-tuning helps on real text: run 7 is 6 points more accurate than the base model (paired bootstrap
+  95% interval +2.8 to +9.2).
+- The self-hosted 4B adapter matches Jev, a hosted classifier, with no measurable difference.
+- The attempts to go further (guidelines v2 tuned on the dev half, real training data, real data cleaned
+  with Jev) raise macro-F1 by 3–5 points in four runs, but no interval excludes zero, and two runs with the
+  same setup differ by 2–3 points. Run 8e is the best of six runs chosen on these same reviews, so its number
+  is slightly optimistic. We report this as not proven.
+- Jev was used as a second opinion on the dev labels and to compare guideline wordings without a GPU. The
+  reviews are public; a shop's private tickets would not be sent to a hosted service.
+- Both rounds: 2.5 GPU hours on one MI350X, about $13. Details and every hash:
+  [docs/demo-run-log.md](docs/demo-run-log.md#store-reviews-second-round-a-larger-held-out-set-guidelines-v2-jev-2026-10-15).
+  Reports: [run 7](https://escapeboy.github.io/chirak/run-7.html), [run 8e](https://escapeboy.github.io/chirak/run-8e.html).
 
 ## Result of the first demo run (run 4)
 
