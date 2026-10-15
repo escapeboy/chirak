@@ -1,0 +1,15 @@
+{
+  "name": "Store review triage (BG)",
+  "description": "Sort customer reviews of a Bulgarian online store by what the shop should do with them: thank the customer, fix a problem, look at both, or consider an idea.",
+  "languages": ["bg"],
+  "fields": [
+    {"name": "category", "type": "enum", "primary": true, "values": ["compliment", "complaint", "mixed", "suggestion"]}
+  ],
+  "guidelines": "Reviews come from Bulgarian review sites. Many end with a short list of pros and then a short list of cons, without headings.\ncategory: the overall point of the review for the shop.\n- compliment: the experience was good overall: fast delivery, good prices, polite staff, a good product. A small remark or a wish at the end does not change this, and neither does a short cons list when the text itself is positive.\n- complaint: the experience was bad: an order not delivered or cancelled, goods shown as in stock that are not, a wrong price or fee, a faulty product, rude or silent staff. There is little or no real praise.\n- mixed: the reviewer gives real weight to both sides: something went well and something went wrong for them (\"friendly staff, but the parcel came three days late\").\n- suggestion: the main point is advice to the shop about what to change or add (\"update the stock more often\", \"list the dimensions of every product\", \"add card payment\"), more than a verdict on one experience.",
+  "target_metric": "macro_f1",
+  "target_value": 0.95,
+  "eval_n": 200,
+  "train_n": 1000,
+  "require_review": true,
+  "guidelines_note": "Written by Claude Code after reading the train split of the dataset (never the test split); not written by a human."
+}

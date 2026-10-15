@@ -56,6 +56,39 @@ class OwnTickets
         return $set;
     }
 
+    /**
+     * Tickets that come labelled already (e.g. a public dataset labelled by people), with their split. No judge
+     * and no review: they are stored as labelled with label_source 'dataset' and frozen at once.
+     *
+     * @param array<int, array{input: string, output: array, split: string}> $rows checked against the task spec by the caller
+     * @param string $origin who labelled them, shown on the report
+     */
+    public function importLabelled(Run $run, array $rows, string $origin): Dataset
+    {
+        if ($run->ownSet()->exists()) {
+            throw new InvalidArgumentException('This run already has uploaded tickets; delete them first.');
+        }
+        $train = count(array_filter($rows, fn ($r) => $r['split'] === OwnItem::TRAIN));
+        if ($train === count($rows)) {
+            throw new InvalidArgumentException('At least one ticket must be for evaluation.');
+        }
+        DB::transaction(function () use ($run, $rows, $train) {
+            OwnSet::create(['run_id' => $run->id, 'state' => OwnSet::REVIEW, 'train_share' => (int) round(100 * $train / count($rows))]);
+            $now = now();
+            foreach (array_chunk($rows, 100, true) as $chunk) {
+                OwnItem::insert(array_map(fn ($row, $k) => [
+                    'run_id' => $run->id, 'position' => $k + 1, 'text' => PiiMasker::mask($row['input']), 'split' => $row['split'],
+                    'status' => OwnItem::LABELLED, 'label' => json_encode($row['output'], JSON_UNESCAPED_UNICODE), 'label_source' => 'dataset',
+                    'decided_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+                ], $chunk, array_keys($chunk)));
+            }
+        });
+        $dataset = $this->freeze($run);
+        $dataset->update(['stats' => $dataset->stats + ['label_origin' => $origin]]);
+
+        return $dataset;
+    }
+
     /** The same slug and count always give the same positions, so the split can be reproduced. @return int[] */
     private function trainPositions(string $slug, int $n, int $share): array
     {

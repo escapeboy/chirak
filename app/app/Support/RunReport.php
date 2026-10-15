@@ -167,6 +167,7 @@ class RunReport
         return [
             'n' => $dataset->rows(),
             'label_sources' => $dataset->stats['label_sources'] ?? ['judge' => 0, 'human' => 0],
+            'label_origin' => $dataset->stats['label_origin'] ?? null,
             'dropped' => (int) ($dataset->stats['dropped'] ?? 0),
             'train' => $dataset->stats['train'] ?? null,
             'follow_up' => $this->run->followUp,
