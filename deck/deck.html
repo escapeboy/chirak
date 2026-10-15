@@ -126,6 +126,33 @@
 </section>
 
 <section class="slide">
+  <div class="kicker">Second task · Bulgarian store reviews · labels made by people</div>
+  <h2 style="margin-bottom:24px">Checked against people: accuracy 0.76 → 0.84 on real reviews</h2>
+  <div class="grid2" style="grid-template-columns: 1.1fr 1fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>182 test reviews, human labels</th><th>Accuracy</th><th>Macro-F1</th></tr>
+        <tr><td>Always &ldquo;compliment&rdquo;</td><td>0.65</td><td>&ndash;</td></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.76</td><td>0.62</td></tr>
+        <tr><td>Run 7: synthetic data from 15 seeds</td><td><b style="color:var(--green)">0.84</b></td><td>0.70</td></tr>
+        <tr><td>Run 7b: + 700 real labelled reviews</td><td><b style="color:var(--green)">0.84</b></td><td>0.71</td></tr>
+      </table>
+      <p class="note">906 reviews of 87 Bulgarian online stores, labelled compliment / complaint / mixed / suggestion by the dataset authors (Georgieva-Trifonova et al., Harvard Dataverse, CC BY 4.0). Seeds came from the train split; the test split was not opened before scoring. The task guidelines were written by Claude Code, not by a person.</p>
+    </div>
+    <div>
+      <ul>
+        <li><b>Accuracy gain is real:</b> +7.7 points, 95% bootstrap interval +1.6 to +13.7.</li>
+        <li><b>Macro-F1 is not proven:</b> only 6 suggestions and 25 mixed reviews in the test set.</li>
+        <li><b>Real training data did not help here:</b> run 7b, started with &ldquo;Train a new run with these tickets&rdquo;, equals run 7.</li>
+        <li><b>Synthetic eval overstates:</b> 0.90 &rarr; 0.98 there, 0.62 &rarr; 0.70 macro-F1 on people&rsquo;s labels.</li>
+      </ul>
+      <p class="note">Both runs: 57 GPU minutes on one MI350X, about $5.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Runs store-review-triage-bg-2cri7b and -own-tickets-ujdok9 · eval-own 49917a73…</span><span>6</span></div>
+</section>
+
+<section class="slide">
   <div class="kicker">The first step · run 4 · synthetic data only</div>
   <h2 style="margin-bottom:24px">Run 4: clean slice 0.84 → 0.98, hard slice 0.77 → 0.84, target not met</h2>
   <div class="grid2" style="grid-template-columns: 1.05fr 1fr; gap: 40px">
@@ -141,7 +168,7 @@
     </div>
     <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
   </div>
-  <div class="foot"><span>Run merchant-triage-g4oirl (run 4) · eval 6ecec925… · eval-hard c5997a47…</span><span>6</span></div>
+  <div class="foot"><span>Run merchant-triage-g4oirl (run 4) · eval 6ecec925… · eval-hard c5997a47…</span><span>7</span></div>
 </section>
 
 <section class="slide">
@@ -156,7 +183,7 @@
   </table>
   <p class="note">Iteration 1 took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h; the hard slice and two more iterations about 2.3 h more. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
   <p style="margin-top:26px;font-size:26px"><b>How it is split:</b> a Laravel 12 control plane (run state machine, stop rules, Claude failure analyst, public reports that work with the GPU off) and a FastAPI GPU worker (/generate, /train, /evaluate, /serve, /predict) reached only through an SSH tunnel. Open source, MIT; tests need no GPU.</p>
-  <div class="foot"><span>Chirak</span><span>7</span></div>
+  <div class="foot"><span>Chirak</span><span>8</span></div>
 </section>
 
 <section class="slide">
@@ -168,20 +195,20 @@
     <div class="card"><h3>Agencies</h3><p>Integrators who build support tooling for many small merchants and need a repeatable way to produce and prove a small model per client.</p></div>
   </div>
   <p class="note">This slide is a plan, not traction: there are no customers yet.</p>
-  <div class="foot"><span>Chirak</span><span>8</span></div>
+  <div class="foot"><span>Chirak</span><span>9</span></div>
 </section>
 
 <section class="slide">
   <div class="kicker">Next</div>
   <h2>Next steps</h2>
   <ul>
-    <li><b>Human-labelled evals:</b> the hard slice, the real-tweet set and the own-ticket flow exist, but their labels come from a Claude judge and Claude Code; Bulgarian tickets labelled by people are next.</li>
+    <li><b>Human-labelled tickets:</b> the store-review task is scored against people; the ticket-triage evals still use labels from a Claude judge. Support tickets labelled by people are next.</li>
     <li><b>Extraction tasks:</b> order numbers, products, amounts, not only classification.</li>
     <li><b>Multi-tenant runs</b> on a shared GPU with a queue, and adapters per merchant.</li>
     <li><b>Preference tuning (DPO)</b> once a classification adapter exists.</li>
     <li><b>A marketplace of adapters</b> for common commerce tasks, each with its frozen eval and report.</li>
   </ul>
-  <div class="foot"><span>github.com/escapeboy/chirak</span><span>9</span></div>
+  <div class="foot"><span>github.com/escapeboy/chirak</span><span>10</span></div>
 </section>
 
 </body>

@@ -8,8 +8,11 @@ labelling); at freeze, training tickets that repeat an eval ticket or share a wo
 counted; "Train a new run with these tickets" starts a follow-up run with the same task, seeds and target, the
 training part as its train-real data (put on the worker by the pipeline) and the same frozen eval-own slice
 (same sha256). Deleting the tickets also deletes the follow-up run's copies, locally and on the worker, and is
-refused while the follow-up still trains. Not measured on a GPU: the only real tickets we have that are not
-already in training are the TwCS tweets, which stay evaluation-only (CC BY-NC-SA).
+refused while the follow-up still trains. **Run on a GPU on 15 Oct** with a second task whose data is labelled by
+people and licensed for training (Bulgarian store reviews, CC BY 4.0): labelled tickets can now be uploaded as
+they are (`chirak:import-own-labelled`, no judge), and run 7b, started with "Train a new run with these tickets",
+trained on 700 of them. Result: no measurable gain over synthetic data alone on that task; see
+[demo-run-log.md](demo-run-log.md#second-task-bulgarian-store-reviews-labelled-by-people-2026-10-15).
 Open questions were settled by default after the owner said to do all four: Claude Code wrote the
 guidelines; R2 uses real tickets as training data (in a separate run, so its effect is visible); the
 tweets stay evaluation-only; the demo is at chirak.fleetq.net (owner's choice).

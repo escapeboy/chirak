@@ -306,3 +306,81 @@ GPU (MI350X, $5.49/h): real-text evals 23 min (14 of them a pod created without 
 $6.30. Anthropic judge on 14 Oct: 4,658 requests, 2.72M input / 0.46M output tokens (real-text labels v1
 and v2, ABCD train labels, eval-hard v2: 4,358 requests, 2.51M / 0.42M, summed from the
 `*.judge.stats.json` files; own tickets: 300 requests, 0.22M / 0.05M).
+
+## Second task: Bulgarian store reviews labelled by people (2026-10-15)
+
+Why: every real-text label above comes from a Claude judge, and no real ticket set we had could be used
+for training (TwCS is CC BY-NC-SA). This task has both: labels made by people and a licence that allows
+training.
+
+**Data.** Georgieva-Trifonova, Stefanova, Kalchev, *Dataset for Customer Feedback Text Analysis for Online
+Stores Reviews in Bulgarian*, Harvard Dataverse, doi:10.7910/DVN/TXIK9P, **CC BY 4.0**: 906 reviews of 87
+online stores from otzivi.bg and pazaruvaj.com, labelled by the authors as compliments, complaints, mixed
+or suggestions. Split as published by MTEB (`mteb/BulgarianStoreReviewSentimentClassfication`, revision
+`0d00595e`): 724 train, 182 test. The integer labels were checked against the Dataverse `.txt` (548 texts
+matched exactly, all as 0 complaint, 1 compliment, 2 mixed, 3 suggestion). Builder:
+`demo/bgstores/build_bgstores.py`; files and `freeze.json` (07:50Z, before any model was scored):
+`../chirak-artifacts/bgstores-2026-10-15/`.
+
+- Seeds (15) and hold-outs (5) were drawn at random from the train split (fixed seed, 60–500 characters,
+  4/4/4/3 and 2/1/1/1 per class). The test split was not opened before scoring.
+- Task: one field, `category` ∈ {compliment, complaint, mixed, suggestion}, Bulgarian only
+  (`demo/bgstores/task.json`). **The guidelines were written by Claude Code after reading the train split,
+  not by a person.** Target macro-F1 0.95 on the synthetic eval, eval 200, train 1000 per iteration.
+- The 182 test reviews are the run's own slice, uploaded with their labels by the new
+  `chirak:import-own-labelled` (label_source `dataset`: no judge, no review); the 704 other train reviews
+  are its training part. 2 of those share a word 8-gram with a test review and were left out at the
+  freeze (702 kept). eval-own sha256 `49917a73…10b6` (the texts after PII masking).
+
+**Runs** (one MI350X pod, 07:52–08:49 UTC). Both checkpoints before training were approved by Claude Code on the
+owner's instruction to run the whole plan: for run 7 after reading 10 eval and 10 train items, the leakage counts and
+the eval hash; for run 7b after the leakage counts, the eval hash and the base score (same prompts as run 7):
+- **Run 7 `store-review-triage-bg-2cri7b`**, synthetic data only. Eval: 200 + 15 seeds, sha256
+  `7993e197…b342`, 7 of 276 candidates dropped by the blind label check. Train-1: 1000 of 1368 candidates,
+  11 dropped as near-copies of the eval. Macro-F1 on its synthetic eval 0.903 → 0.981 after iteration 1,
+  target met. Training 176 s.
+- **Run 7b `store-review-triage-bg-own-tickets-ujdok9`**, started with "Train a new run with these
+  tickets" (R3.6): the same task plus the 702 human-labelled train reviews in every iteration. Before
+  approving, `demo/real/leakage_real.py` found 2 of them with bge-m3 cosine ≥ 0.92 to a test review (one
+  0.98: the same review posted twice) and 0 against the run's synthetic eval; those 2 were removed, so
+  train-real has 700 rows (sha256 `dc19e504…f4d2`). Its own synthetic eval sha256 `b40fb79d…5198`. Macro-F1
+  on it 0.903 → 0.977 after iteration 1, target met. Training 295 s (1700 examples).
+
+**On the 182 test reviews labelled by people** (the same frozen file for all three):
+
+| | Accuracy | Macro-F1 | compliment F1 | complaint F1 | mixed F1 | suggestion F1 |
+|---|---|---|---|---|---|---|
+| Always "compliment" | 0.648 | – | | | | |
+| Qwen3.5-4B, no fine-tune | 0.758 | 0.623 | 0.863 | 0.882 | 0.520 | 0.229 |
+| Run 7 iteration 1 (synthetic only) | **0.835** | 0.698 | 0.911 | 0.857 | 0.478 | 0.545 |
+| Run 7b iteration 1 (synthetic + 700 real) | **0.835** | 0.715 | 0.918 | 0.844 | 0.552 | 0.545 |
+
+Paired bootstrap, 5000 resamples of the 182 reviews (`../chirak-artifacts/mi350-2026-10-15-bgstores/bootstrap.txt`):
+- run 7 − base: accuracy +0.077, 95% CI [+0.016, +0.137]; macro-F1 +0.075, CI [−0.038, +0.173];
+- run 7b − base: accuracy +0.077, CI [+0.022, +0.137]; macro-F1 +0.091, CI [−0.023, +0.190];
+- run 7b − run 7: accuracy 0.000, CI [−0.044, +0.044]; macro-F1 +0.017, CI [−0.042, +0.083].
+
+What this says:
+- Fine-tuning on synthetic data written from 15 real examples made the 4B model better on real reviews
+  labelled by people: accuracy 0.76 → 0.84, and the interval excludes zero. The base model called many
+  compliments "suggestion" (16 of 118); the adapters almost never do.
+- Macro-F1 also rose, but its interval includes zero: the test split has only 6 suggestions and 25 mixed
+  reviews, so those classes swing on a few reviews.
+- Adding 700 real labelled reviews to training made no measurable difference over synthetic data alone.
+  We did not show that real training data helps here.
+- The gap between the synthetic eval (0.98) and the human labels (0.70 macro-F1) is large. Mixed reviews
+  are the main error; the human labels are themselves debatable in places (several "suggestion" reviews
+  in the train split read as compliments).
+
+Reproduce: `make eval RUN=<slug> ADAPTER=<base|/data/runs/<slug>/iter-1/adapter> EVAL=eval-own` gave
+exactly the stored numbers for all three rows (0.7582/0.6234, 0.8352/0.6981, 0.8352/0.7147).
+Artifacts (eval files, train files, adapters, predictions, logs; 55 files, sha256-checked against the pod):
+`../chirak-artifacts/mi350-2026-10-15-bgstores/`.
+
+Defect found on the way: `own_sets.eval_stage` was 32 characters, too short for the served name
+`store-review-triage-bg-2cri7b-iter-1`, so MariaDB refused the update and the own-slice evaluation of the
+adapter failed; widened to 255 (migration `2026_10_15_000006`). SQLite, used by the tests and the public
+demo, does not enforce the length.
+
+GPU: 57 min on MI350X ($5.49/h) ≈ $5.0; RunPod balance after: $51.05. No Anthropic judge calls (the labels
+came with the data); the failure analyst was not called, since both runs met the target after iteration 1.

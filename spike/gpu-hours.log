@@ -26,3 +26,5 @@
 2026-10-14T12:43:14Z TERMINATE 1pt556bl9350ny (R1-R4 done; artifacts in chirak-artifacts/mi350-2026-10-14-pod5 and cpu-gguf)
 2026-10-14T14:47:47Z START r0t94jnwntzu0o CPU $0.06/h (copy spike evidence off network volume 729cerk1o4 before deleting it)
 2026-10-14T14:49:54Z TERMINATE r0t94jnwntzu0o; DELETE pod jyipvchu8hbclj and network volume 729cerk1o4 (spike evidence copied to chirak-artifacts/mi300x-2026-10-12-spike; models/venv re-downloadable; balance $56.03, spend $0/h)
+2026-10-15T07:51:59Z START cksg7ijs7gblil MI350X $5.49/h (second task: Bulgarian store reviews, runs 7 and 7b)
+2026-10-15T08:48:48Z TERMINATE cksg7ijs7gblil (runs 7 and 7b done; artifacts in chirak-artifacts/mi350-2026-10-15-bgstores, checksums verified)

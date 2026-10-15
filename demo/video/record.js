@@ -128,7 +128,7 @@ async function smoothTo(page, locator, offset = 90) {
   });
 
   await page.goto(DECK);
-  await page.locator('section.slide').nth(6).scrollIntoViewIfNeeded();  // "Everything runs on one AMD Instinct GPU", with the architecture
+  await page.locator('section.slide').nth(7).scrollIntoViewIfNeeded();  // "Everything runs on one AMD Instinct GPU", with the architecture
   await scene('arch', async () => { await caption(page, 'arch'); });
 
   const total = (Date.now() - t0) / 1000;

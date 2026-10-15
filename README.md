@@ -6,7 +6,8 @@ Chirak turns a task description and a handful of examples into a small, self-hos
 It freezes an eval set first, measures the untouched base model, synthesizes training data, LoRA
 fine-tunes a 4B model on one AMD Instinct GPU, lets Claude analyse the failures, regenerates data for
 the weak classes and stops on deterministic rules. Built for the AMD Developer Hackathon ACT III,
-track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, Bulgarian and English.
+track *Reinvent Commerce*. Demo task: support-ticket triage for an online shop, Bulgarian and English. A second task, sorting
+Bulgarian store reviews, is scored against labels made by people.
 
 ![Public report of the demo run](docs/img/report.png)
 
@@ -48,6 +49,30 @@ people, which the earlier runs were not tuned against:
 
 Full tables, caveats and every file hash: [docs/demo-run-log.md](docs/demo-run-log.md). What changed
 and why: [docs/requirements-improvements.md](docs/requirements-improvements.md).
+
+### A second task, scored against labels made by people (15 Oct 2026)
+
+The labels on real text above come from a Claude judge. To check Chirak against people, a second task
+uses a public dataset labelled by its authors: 906 Bulgarian reviews of 87 online stores (otzivi.bg,
+pazaruvaj.com; Georgieva-Trifonova et al., Harvard Dataverse, doi:10.7910/DVN/TXIK9P, **CC BY 4.0**),
+each a compliment, complaint, mixed review or suggestion. Chirak got 15 reviews from the train split as
+seeds; the 182 test reviews were uploaded as the run's own slice with their human labels and not opened
+before scoring. The task guidelines were written by Claude Code from the train split, not by a person.
+
+| 182 test reviews, labels by people | Accuracy | Macro-F1 |
+|---|---|---|
+| Always "compliment" | 0.65 | – |
+| Qwen3.5-4B, no fine-tune | 0.76 | 0.62 |
+| Run 7 (synthetic data from 15 seeds) | **0.84** | 0.70 |
+| Run 7b (the same + 700 real labelled reviews in training) | **0.84** | 0.71 |
+
+- Accuracy rose by 7.7 points; a paired bootstrap puts run 7's gain between +1.6 and +13.7 (95%). Macro-F1
+  rose too, but with 6 suggestions and 25 mixed reviews in the test split its interval includes zero.
+- Run 7b was started from run 7's page with "Train a new run with these tickets". The 700 real reviews
+  did not measurably help over synthetic data alone (difference 0.00 accuracy, +0.02 macro-F1).
+- On its own synthetic eval each run went 0.90 → 0.98 macro-F1 in one iteration. Real reviews are much
+  harder than that eval suggests, which is why Chirak scores real data as a separate slice.
+- Both runs together: 57 GPU minutes on one MI350X, about $5.
 
 ## Result of the first demo run (run 4)
 
@@ -193,6 +218,9 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
 - Guidelines v2 (14 Oct) were written by Claude Code, not by a human, after the owner asked for all
   the improvements in docs/requirements-improvements.md to be done. The review of unstable labels on eval-hard and on
   the own-ticket set was also done by Claude Code on the owner's delegation; both are labelled so.
+- The store-review task (15 Oct): its guidelines were written by Claude Code from the train split; its
+  seeds are real reviews drawn at random, and every label on it comes from the dataset's authors. The
+  checkpoint before training was approved by Claude Code on the owner's instruction to run the plan.
 - Unsloth was the planned trainer. It refuses to import without bitsandbytes, which this project
   rules out, so training uses the documented fallback: transformers + peft + trl.
 
@@ -203,7 +231,7 @@ Tests without a GPU: `make test` (worker: pytest with a fake vLLM and embedder; 
 | `worker/` | FastAPI GPU worker: generate, train, evaluate, serve, predict ([README](worker/README.md)) |
 | `app/` | Laravel control plane: wizard, dashboard, playground, public report ([README](app/README.md)) |
 | `spike/` | Environment checks, pinned versions, pod bootstrap |
-| `demo/` | Seed tickets of the demo task, real-text eval builders (`real/`), the video recording script, the static report export |
+| `demo/` | Seed tickets of the demo task, real-text eval builders (`real/`), the second task on Bulgarian store reviews (`bgstores/`), the video recording script, the static report export |
 | `deploy/demo/` | The public read-only demo: Laravel + CPU playground (llama.cpp) behind the shared proxy |
 | `docs/` | Worker API contract, run log, requirements, RunPod notes, screenshots |
 
