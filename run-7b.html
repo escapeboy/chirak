@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store review triage (BG) + own tickets report - Chirak</title>
+    <link rel="preload" as="style" href="assets/app-DZYI8-v_.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-DZYI8-v_.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
+<body class="min-h-full font-sans text-slate-900 antialiased">
+<header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <a href="https://github.com/escapeboy/chirak" class="flex items-baseline gap-2">
+            <span class="text-lg font-bold tracking-tight text-brand-600">Chirak</span>
+            <span class="hidden text-sm text-slate-500 sm:inline">task description in, fine-tuned small model out</span>
+        </a>
+        <a href="https://github.com/escapeboy/chirak" class="text-sm font-medium text-slate-700 hover:text-brand-600">Source on GitHub</a>
+    </div>
+    </header>
+
+<main class="mx-auto max-w-6xl px-4 py-8">
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 7b (store reviews + real) (<code>store-review-triage-bg-own-tickets-ujdok9</code>), generated 15 Oct 2026 from its stored results. Runs: <a class="underline" href="index.html">Run 6</a> · <a class="underline" href="run-5b.html">Run 5b</a> · <a class="underline" href="run-5.html">Run 5</a> · <a class="underline" href="run-4.html">Run 4</a> · <a class="underline" href="run-7.html">Run 7 (store reviews)</a> · <strong>Run 7b (store reviews + real)</strong>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl font-bold tracking-tight">Store review triage (BG) + own tickets</h1>
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700">completed</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-500">Sort customer reviews of a Bulgarian online store by what the shop should do with them: thank the customer, fix a problem, look at both, or consider an idea. Public, read-only report built from the stored results.</p>
+                    </div>
+
+            <div class="mb-6 grid gap-4 sm:grid-cols-3">
+            <div class="card"><div class="text-sm text-slate-500">Baseline macro-f1</div><div class="text-3xl font-bold">90.3%</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Final macro-f1</div><div class="text-3xl font-bold">97.7%</div></div>
+            <div class="card"><div class="text-sm text-slate-500">Change</div><div class="text-3xl font-bold">+7.4 pts</div></div>
+        </div>
+    
+    <div class="space-y-6">
+        <div class="card">
+    <h2 class="card-title">Baseline vs iterations</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
+                    <th class="th">JSON validity</th><th class="th">Exact match</th>
+                                    </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr class="">
+                        <td class="td font-medium">Baseline (base model) </td>
+                        <td class="td">90.2%</td>
+                        <td class="td">90.3%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">90.2%</td>
+                                            </tr>
+                                    <tr class="bg-emerald-50/50">
+                        <td class="td font-medium">Iteration 1 <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">served</span></td>
+                        <td class="td">97.7%</td>
+                        <td class="td">97.7%</td>
+                        <td class="td">100.0%</td>
+                        <td class="td">97.7%</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+        <p class="mt-3 text-sm text-slate-500">
+            Target: macro-f1 at least 95%.
+                         Stopped: target met (0.977 &gt;= 0.950).         </p>
+            </div>
+                <div class="card">
+    <h2 class="card-title">Own tickets</h2>
+            <p class="mb-3 text-sm text-slate-500">182 of the shop's own tickets, masked and frozen as a separate slice. They came with labels made by people: the dataset authors Georgieva-Trifonova, Stefanova and Kalchev (Harvard Dataverse, doi:10.7910/DVN/TXIK9P, CC BY 4.0), test split of the MTEB release. Neither the judge nor Chirak changed them. The tickets themselves are private to the run owner.</p>
+                        <p class="mb-3 text-sm text-slate-500">Training included 700 own tickets of run <a href="run-7.html" class="font-medium text-brand-600 hover:underline">Store review triage (BG)</a>.</p>
+                    <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead><tr>
+                    <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
+                    <th class="th">category</th>                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr>
+                        <td class="td font-medium">Base model</td>
+                        <td class="td">75.8%</td>
+                        <td class="td">62.3%</td>
+                        <td class="td">75.8%</td>                    </tr>
+                                    <tr>
+                        <td class="td font-medium">Served adapter (iteration 1)</td>
+                        <td class="td">83.5%</td>
+                        <td class="td">71.5%</td>
+                        <td class="td">83.5%</td>                    </tr>
+                                </tbody>
+            </table>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Accuracy is on the primary field; the field columns are the accuracy of each field on its own.</p>
+        </div>
+        <div class="card">
+    <h2 class="card-title">Per-class results, baseline vs iteration 1</h2>
+            <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead><tr>
+                    <th class="th">Class</th><th class="th">Support</th>
+                    <th class="th">Base P</th><th class="th">Base R</th><th class="th">Base F1</th>
+                    <th class="th">P</th><th class="th">R</th><th class="th">F1</th><th class="th">F1 vs base</th>                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                                    <tr>
+                        <td class="td font-medium">compliment</td>
+                        <td class="td">54</td>
+                        <td class="td">100%</td>
+                        <td class="td">78%</td>
+                        <td class="td">88%</td>
+                                                    <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+10.7 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">complaint</td>
+                        <td class="td">54</td>
+                        <td class="td">95%</td>
+                        <td class="td">98%</td>
+                        <td class="td">96%</td>
+                                                    <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+1.8 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">mixed</td>
+                        <td class="td">54</td>
+                        <td class="td">96%</td>
+                        <td class="td">87%</td>
+                        <td class="td">91%</td>
+                                                    <td class="td">96%</td>
+                            <td class="td">96%</td>
+                            <td class="td">96%</td>
+                            <td class="td font-medium text-emerald-700">+5.0 pts</td>
+                                            </tr>
+                                    <tr>
+                        <td class="td font-medium">suggestion</td>
+                        <td class="td">53</td>
+                        <td class="td">76%</td>
+                        <td class="td">98%</td>
+                        <td class="td">86%</td>
+                                                    <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td">98%</td>
+                            <td class="td font-medium text-emerald-700">+12.2 pts</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Confusion matrix <span class="normal-case text-slate-400">(Iteration 1, rows = expected, columns = predicted)</span></h2>
+                    <div class="overflow-x-auto">
+            <table class="text-xs">
+                <thead><tr>
+                    <th class="p-1"></th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="compliment">compliment</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="complaint">complaint</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="mixed">mixed</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="suggestion">suggestion</th>
+                                            <th class="max-w-20 p-1 text-left font-medium text-slate-500" title="__invalid__">__invalid_...</th>
+                                    </tr></thead>
+                <tbody>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">compliment</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">53</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.1)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">complaint</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,1)">53</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.1)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">mixed</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.1)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.98)">52</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.1)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">suggestion</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0.1)">1</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-white"
+                                style="background-color: rgba(5,150,105,0.98)">52</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                            </tr>
+                                    <tr>
+                        <th class="whitespace-nowrap p-1 pr-2 text-right font-medium text-slate-500">__invalid__</th>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(220,38,38,0)">0</td>
+                                                                                <td class="h-9 w-14 border border-white text-center text-slate-800"
+                                style="background-color: rgba(5,150,105,0)">0</td>
+                                            </tr>
+                                </tbody>
+            </table>
+        </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Leakage guard and frozen eval set</h2>
+            <dl class="mb-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <div><dt class="text-slate-500">Eval items</dt><dd class="font-medium">215 (200 synthetic + 15 seed)</dd></div>
+            <div><dt class="text-slate-500">Frozen at</dt><dd class="font-medium">2026-10-15 08:30:47 UTC</dd></div>
+                            <div class="sm:col-span-2"><dt class="text-slate-500">Blind label check</dt><dd class="font-medium">6 of 276 eval candidates dropped because the generator, labelling the text blind with the student's prompt, disagreed with the target label. The kept items are the unambiguous ones, so this eval is cleaner and easier than an unfiltered one.</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-slate-500">Eval SHA-256</dt><dd class="break-all font-mono text-xs">b40fb79db38f286689fc772b11e98ac1c3d2645bc0ad27be463a331cb8d45198</dd></div>
+        </dl>
+    
+            <table class="min-w-full divide-y divide-slate-200">
+            <thead><tr><th class="th">Train set</th><th class="th">Candidates</th><th class="th">Dropped as near-copies of eval</th><th class="th">Drop rate</th><th class="th">Dropped by label check</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+                            <tr>
+                    <td class="td">Iteration 1</td>
+                    <td class="td">1372</td>
+                    <td class="td">13</td>
+                    <td class="td">1.0% </td>
+                    <td class="td">22</td>
+                </tr>
+                        </tbody>
+        </table>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Decisions log</h2>
+            <div class="mb-4 rounded-lg border border-slate-200 p-4 last:mb-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="font-semibold">After iteration 1</span>
+                                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-800">
+                    Stop rules: stop, target met (0.977 &gt;= 0.950)
+                </span>
+            </div>
+                            <p class="text-sm text-slate-500">The model was not consulted: the stop rules ended the loop.</p>
+                    </div>
+    </div>
+        <div class="card">
+    <h2 class="card-title">Training loss</h2>
+            <div wire:ignore wire:key="loss-13b691f1a0785103cd9ab602f8a684ae" class="h-64">
+            <canvas data-loss="{&quot;Iteration 1&quot;:[{&quot;step&quot;:10,&quot;loss&quot;:0.15646618604660034},{&quot;step&quot;:20,&quot;loss&quot;:0.04602437019348145},{&quot;step&quot;:30,&quot;loss&quot;:0.043239325284957886},{&quot;step&quot;:40,&quot;loss&quot;:0.024749977886676787},{&quot;step&quot;:50,&quot;loss&quot;:0.026862815022468567},{&quot;step&quot;:60,&quot;loss&quot;:0.02822825312614441},{&quot;step&quot;:70,&quot;loss&quot;:0.027185025811195373},{&quot;step&quot;:80,&quot;loss&quot;:0.02560960650444031},{&quot;step&quot;:90,&quot;loss&quot;:0.025552189350128172},{&quot;step&quot;:100,&quot;loss&quot;:0.032006487250328064},{&quot;step&quot;:110,&quot;loss&quot;:0.03520355224609375},{&quot;step&quot;:120,&quot;loss&quot;:0.013343028724193573},{&quot;step&quot;:130,&quot;loss&quot;:0.016635724902153017},{&quot;step&quot;:140,&quot;loss&quot;:0.013620768487453461},{&quot;step&quot;:150,&quot;loss&quot;:0.01734233498573303},{&quot;step&quot;:160,&quot;loss&quot;:0.014077207446098328},{&quot;step&quot;:170,&quot;loss&quot;:0.010570616275072098},{&quot;step&quot;:180,&quot;loss&quot;:0.012452705204486847},{&quot;step&quot;:190,&quot;loss&quot;:0.013925045728683472},{&quot;step&quot;:200,&quot;loss&quot;:0.00668468028306961},{&quot;step&quot;:210,&quot;loss&quot;:0.010038010030984878}]}"></canvas>
+        </div>
+    </div>
+    </div>
+</main>
+
+<footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400">
+    Chirak, MIT licensed. Training and evaluation run on one AMD Instinct GPU (MI300X during the spike, MI350X for the demo run).
+</footer>
+</body>
+</html>

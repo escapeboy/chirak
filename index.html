@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Merchant ticket triage (BG/EN), guidelines v2 + real tickets (ABCD train) report - Chirak</title>
-    <link rel="preload" as="style" href="assets/app-CzdTzTMW.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-CzdTzTMW.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
+    <link rel="preload" as="style" href="assets/app-DZYI8-v_.css" /><link rel="modulepreload" as="script" href="assets/app-HyPxG8RG.js" /><link rel="stylesheet" href="assets/app-DZYI8-v_.css" data-navigate-track="reload" /><script type="module" src="assets/app-HyPxG8RG.js" data-navigate-track="reload"></script></head>
 <body class="min-h-full font-sans text-slate-900 antialiased">
 <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -17,7 +17,7 @@
     </header>
 
 <main class="mx-auto max-w-6xl px-4 py-8">
-<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 6 (<code>merchant-triage-orv1o6</code>), generated 14 Oct 2026 from its stored results. Runs: <strong>Run 6</strong> · <a class="underline" href="run-5b.html">Run 5b</a> · <a class="underline" href="run-5.html">Run 5</a> · <a class="underline" href="run-4.html">Run 4</a>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Live demo with a CPU playground: <a class="underline font-medium" href="https://chirak.fleetq.net">chirak.fleetq.net</a>. This page is a static snapshot of Run 6 (<code>merchant-triage-orv1o6</code>), generated 15 Oct 2026 from its stored results. Runs: <strong>Run 6</strong> · <a class="underline" href="run-5b.html">Run 5b</a> · <a class="underline" href="run-5.html">Run 5</a> · <a class="underline" href="run-4.html">Run 4</a> · <a class="underline" href="run-7.html">Run 7 (store reviews)</a> · <a class="underline" href="run-7b.html">Run 7b (store reviews + real)</a>. Every number can be re-scored with <code>make eval</code>; see the <a class="underline" href="https://github.com/escapeboy/chirak/blob/main/docs/demo-run-log.md">run log</a>.</div>
     <div class="mb-6">
         <div class="flex flex-wrap items-center gap-3">
             <h1 class="text-2xl font-bold tracking-tight">Merchant ticket triage (BG/EN), guidelines v2 + real tickets (ABCD train)</h1>
@@ -72,12 +72,12 @@
             </div>
                 <div class="card">
     <h2 class="card-title">Own tickets</h2>
-    <p class="mb-3 text-sm text-slate-500">
+            <p class="mb-3 text-sm text-slate-500">
         146 of the shop's own tickets, masked and frozen as a separate slice. Labels: 128 by the Claude judge, 0 by a person
                     and 18 by Claude Code on the owner's delegation (not a person)
                  (4 dropped in review). The tickets themselves are private to the run owner.
     </p>
-            <div class="overflow-x-auto">
+                                <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead><tr>
                     <th class="th">Model</th><th class="th">Accuracy</th><th class="th">Macro-F1</th>
