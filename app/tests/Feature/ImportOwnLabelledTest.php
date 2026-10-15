@@ -79,6 +79,20 @@ class ImportOwnLabelledTest extends TestCase
         $this->assertSame('people at the source', $follow->datasets()->where('purpose', 'eval-own')->first()->stats['label_origin']);
     }
 
+    public function test_the_demo_export_leaves_out_every_copy_of_the_own_tickets(): void
+    {
+        $this->import(array_merge(array_map(fn ($i) => $this->row($i, 'eval'), range(1, 4)), array_map(fn ($i) => $this->row($i, 'train'), range(5, 8))));
+        $follow = app(OwnTickets::class)->trainNewRun($this->run->refresh());
+        Storage::disk('runs')->put("{$this->run->slug}/eval.jsonl", '{}');
+
+        $dir = sys_get_temp_dir().'/chirak-export-'.uniqid();
+        $this->artisan('chirak:export-demo', ['dir' => $dir, 'slugs' => [$this->run->slug, $follow->slug]])->assertSuccessful();
+
+        $files = array_map(fn ($f) => substr($f, strlen("$dir/storage/app/runs/")), \Illuminate\Support\Facades\File::allFiles("$dir/storage/app/runs"));
+        $this->assertSame(["{$this->run->slug}/eval.jsonl"], array_values(array_map('strval', $files)));
+        \Illuminate\Support\Facades\File::deleteDirectory($dir);
+    }
+
     public function test_bad_rows_and_a_second_upload_are_refused(): void
     {
         $this->assertSame(1, $this->import([$this->row(1, 'test')]));

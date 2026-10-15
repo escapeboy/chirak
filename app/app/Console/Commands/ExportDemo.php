@@ -26,7 +26,7 @@ class ExportDemo extends Command
     public function handle(): int
     {
         $dir = rtrim($this->argument('dir'), '/');
-        $runs = Run::whereIn('slug', $this->argument('slugs'))->get();
+        $runs = Run::whereIn('slug', $this->argument('slugs'))->orderBy('id')->get(); // a follow-up run after the run it was trained from (foreign key)
         if ($runs->count() !== count($this->argument('slugs'))) {
             $this->error('unknown slug among: '.implode(', ', $this->argument('slugs')));
 
@@ -58,7 +58,13 @@ class ExportDemo extends Command
             }
             if (Storage::disk('runs')->exists($run->slug)) {
                 File::copyDirectory(Storage::disk('runs')->path($run->slug), "$dir/storage/app/runs/{$run->slug}");
-                File::delete(File::glob("$dir/storage/app/runs/{$run->slug}/eval-own*"));
+                // a shop's own tickets stay private: the eval file, the training part (R3.6) and its copy in a follow-up run
+                File::delete(File::glob("$dir/storage/app/runs/{$run->slug}/{eval-own,train-own}*", GLOB_BRACE));
+                foreach ($run->datasets()->where('purpose', 'train-real')->get() as $real) {
+                    if (str_starts_with($real->stats['source'] ?? '', 'own tickets of run') && $real->local_path) {
+                        File::delete("$dir/storage/app/runs/{$real->local_path}");
+                    }
+                }
             }
             $this->info("{$run->slug}: exported");
         }
