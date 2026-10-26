@@ -3,7 +3,6 @@
 namespace Tests\Support;
 
 use App\Models\Run;
-use App\Support\TaskTemplate;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -31,6 +30,9 @@ class FakeWorker
 
     /** macro_f1 on eval-hard: 'base', 1, 2, 3 */
     public array $hard = ['base' => 0.40, 1 => 0.50, 2 => 0.60, 3 => 0.70];
+
+    /** macro_f1 on dev set: 'base', 1, 2, 3 */
+    public array $dev = ['base' => 0.48, 1 => 0.62, 2 => 0.73, 3 => 0.81];
 
     /** leakage_drop_rate of train iteration 1, 2, 3 */
     public array $leakage = [1 => 0.10, 2 => 0.10, 3 => 0.10];
@@ -156,8 +158,12 @@ class FakeWorker
     private function generated(array $b): array
     {
         $i = $b['iteration'] ?? null;
-        $file = $b['purpose'] === 'eval' ? 'eval.jsonl' : "train-$i.jsonl";
-        $rate = $b['purpose'] === 'eval' ? 0 : ($this->leakage[$i] ?? 0.1);
+        $file = match ($b['purpose']) {
+            'eval' => 'eval.jsonl',
+            'dev' => 'dev.jsonl',
+            default => "train-$i.jsonl",
+        };
+        $rate = $b['purpose'] === 'train' ? ($this->leakage[$i] ?? 0.1) : 0;
         $candidates = 1000;
 
         return [
@@ -168,7 +174,7 @@ class FakeWorker
             'by_slice' => ['orders' => 10],
             'dropped' => ['duplicate' => 5, 'leakage_cosine' => (int) ($rate * $candidates * 0.8), 'leakage_ngram' => (int) ($rate * $candidates * 0.2)],
             'leakage_drop_rate' => $rate,
-            'frozen' => $b['purpose'] === 'eval',
+            'frozen' => in_array($b['purpose'], ['eval', 'dev']),
         ];
     }
 
@@ -191,9 +197,18 @@ class FakeWorker
             return $this->evaluatedOwn($b);
         }
         $hard = str_ends_with($b['label'], '.eval-hard');
-        $label = $hard ? substr($b['label'], 0, -strlen('.eval-hard')) : $b['label'];
+        $dev = str_ends_with($b['label'], '.eval-dev');
+        $label = match (true) {
+            $hard => substr($b['label'], 0, -strlen('.eval-hard')),
+            $dev => substr($b['label'], 0, -strlen('.eval-dev')),
+            default => $b['label'],
+        };
         $i = $label === 'base' ? 'base' : (int) substr($label, 5);
-        $f1 = $hard ? $this->hard[$i] : ($i === 'base' ? $this->baseline : $this->iterations[$i]);
+        $f1 = match (true) {
+            $hard => $this->hard[$i],
+            $dev => $this->dev[$i],
+            default => ($i === 'base' ? $this->baseline : $this->iterations[$i]),
+        };
         $labels = $run->primaryField()['values'];
 
         $perClass = [];

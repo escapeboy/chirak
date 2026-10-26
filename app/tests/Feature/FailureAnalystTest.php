@@ -6,6 +6,8 @@ use App\Models\Evaluation;
 use App\Models\Run;
 use App\Services\Pipeline\FailureAnalyst;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\RunsPipeline;
 use Tests\TestCase;
 
@@ -47,7 +49,7 @@ class FailureAnalystTest extends TestCase
         config(['chirak.orchestrator.model' => 'claude-test-model']);
         app(FailureAnalyst::class)->analyze($this->run, $this->evaluation, []);
 
-        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) {
             if ($request->url() !== 'https://api.anthropic.com/v1/messages') {
                 return false;
             }
@@ -105,6 +107,52 @@ class FailureAnalystTest extends TestCase
         $this->assertStringContainsString('529', $result['output']['attempts'][0]['errors'][0]);
     }
 
+    public function test_prompt_uses_dev_failures_not_eval_failures_when_dev_eval_provided(): void
+    {
+        $devEval = Evaluation::create([
+            'run_id' => $this->run->id, 'slice' => 'dev', 'iteration' => 1, 'eval_sha256' => 'z',
+            'metrics' => ['macro_f1' => 0.55, 'per_class' => ['returns' => ['f1' => 0.25]]],
+            'failures' => array_fill(0, 5, ['input' => 'dev-only-failure', 'expected' => ['category' => 'returns'], 'got' => null, 'error' => null]),
+        ]);
+
+        app(FailureAnalyst::class)->analyze($this->run, $this->evaluation, [], $devEval);
+
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api.anthropic.com/v1/messages') {
+                return false;
+            }
+            $content = $request['messages'][0]['content'];
+
+            // prompt uses dev failures, not the eval evaluation's failures
+            return str_contains($content, 'dev-only-failure')
+                && ! str_contains($content, '"bad"');
+        });
+    }
+
+    public function test_previous_decisions_include_delta_metrics_when_supplied(): void
+    {
+        $previous = [[
+            'iteration' => 1,
+            'reason' => 'focus on returns',
+            'next_slices' => [['name' => 'returns', 'n' => 500, 'guidance' => 'g']],
+            'delta_metrics' => ['overall' => 0.13, 'per_class' => ['returns' => 0.18]],
+        ]];
+
+        app(FailureAnalyst::class)->analyze($this->run, $this->evaluation, $previous);
+
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api.anthropic.com/v1/messages') {
+                return false;
+            }
+            $payload = json_decode($request['messages'][0]['content'], true);
+            $prev = $payload['previous_decisions'][0] ?? null;
+
+            return $prev !== null
+                && isset($prev['delta_metrics'])
+                && $prev['delta_metrics']['overall'] === 0.13;
+        });
+    }
+
     public function test_decision_row_logs_prompt_raw_response_parsed_slices_and_the_stop_rule_verdict(): void
     {
         $this->worker->iterations = [1 => 0.60, 2 => 0.90];
@@ -120,7 +168,7 @@ class FailureAnalystTest extends TestCase
         $this->assertSame(config('chirak.orchestrator.model'), $decision->model);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('answers')]
+    #[DataProvider('answers')]
     public function test_validation_rules(mixed $answer, bool $valid): void
     {
         $this->assertSame($valid, FailureAnalyst::validate($answer, 1000) === []);

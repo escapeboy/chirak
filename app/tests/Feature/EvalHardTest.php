@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Dataset;
 use App\Models\Run;
-use Tests\Support\FakeWorker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\FakeWorker;
 use Tests\Support\RunsPipeline;
 use Tests\TestCase;
 
@@ -108,11 +108,20 @@ class EvalHardTest extends TestCase
 
         $gen = collect($this->worker->sent('POST', '/generate'))->last()['body'];
         $this->assertSame(2, $gen['iteration']);
-        $this->assertSame(["/data/runs/{$run->slug}/eval.jsonl", "/data/runs/{$run->slug}/eval-hard.jsonl"], $gen['avoid_near']);
+        $this->assertSame([
+            "/data/runs/{$run->slug}/eval.jsonl",
+            "/data/runs/{$run->slug}/dev.jsonl",
+            "/data/runs/{$run->slug}/eval-hard.jsonl",
+        ], $gen['avoid_near']);
         $this->assertSame(400, $gen['judge_cap']);
         $this->assertSame(['returns', 'complaints'], array_column($gen['target_slices'], 'name'));
         $labels = array_column(array_column($this->worker->sent('POST', '/evaluate'), 'body'), 'label');
-        $this->assertSame(['base', 'iter-1', 'base.eval-hard', 'iter-1.eval-hard', 'iter-2', 'iter-2.eval-hard'], $labels);
+        // first run: base+dev, iter-1+dev; after retarget: hard baseline, iter-1 hard, iter-2 clean+hard+dev
+        $this->assertSame([
+            'base', 'base.eval-dev', 'iter-1', 'iter-1.eval-dev',
+            'base.eval-hard', 'iter-1.eval-hard',
+            'iter-2', 'iter-2.eval-hard', 'iter-2.eval-dev',
+        ], $labels);
     }
 
     public function test_retarget_needs_eval_hard(): void
