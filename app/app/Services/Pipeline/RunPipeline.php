@@ -27,9 +27,7 @@ class RunPipeline
         'target_modules' => ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
     ];
 
-    public function __construct(private WorkerClient $worker, private FailureAnalyst $analyst)
-    {
-    }
+    public function __construct(private WorkerClient $worker, private FailureAnalyst $analyst) {}
 
     public function start(Run $run): void
     {
@@ -59,9 +57,18 @@ class RunPipeline
             return ['step' => 'generate_eval', 'iteration' => null];
         }
 
+        $dev = $this->dataset($run, 'dev');
+        if (! $dev) {
+            return ['step' => 'generate_dev', 'iteration' => null];
+        }
+
         $baseline = $this->evaluation($run, null);
         if (! $baseline) {
             return ['step' => 'evaluate_base', 'iteration' => null];
+        }
+
+        if (! $this->devEvaluation($run, null)) {
+            return ['step' => 'evaluate_dev', 'iteration' => null];
         }
 
         // With an eval-hard set the target, the analysis and the stop rules use the hard slice;
@@ -99,6 +106,10 @@ class RunPipeline
 
             if ($slice === 'hard' && ! $this->evaluation($run, $i, 'hard')) {
                 return ['step' => 'evaluate_hard', 'iteration' => $i];
+            }
+
+            if (! $this->devEvaluation($run, $i)) {
+                return ['step' => 'evaluate_dev', 'iteration' => $i];
             }
 
             $decision = $this->decision($run, $i, $slice);
@@ -257,6 +268,14 @@ class RunPipeline
                 ]);
                 $stage = 'generate_eval';
                 break;
+            case 'generate_dev':
+                $jobId = $this->worker->generate([
+                    'run_id' => $run->slug, 'purpose' => 'dev', 'task_spec' => $spec,
+                    'seed_examples' => $run->seed_examples, 'n' => $run->eval_n,
+                    'avoid_near' => [$evalPath],
+                ]);
+                $stage = 'generate_dev';
+                break;
             case 'evaluate_base':
                 $jobId = $this->worker->evaluate([
                     'run_id' => $run->slug, 'eval_file' => $evalPath, 'model' => 'base',
@@ -264,13 +283,24 @@ class RunPipeline
                 ]);
                 $stage = 'evaluate_base';
                 break;
+            case 'evaluate_dev':
+                $devPath = $this->dataset($run, 'dev')?->remote_path;
+                $label = $i === null ? 'base' : "iter-$i";
+                $jobId = $this->worker->evaluate([
+                    'run_id' => $run->slug, 'eval_file' => $devPath, 'task_spec' => $spec,
+                    'label' => "$label.eval-dev",
+                    'model' => $i === null ? 'base' : $run->iterations()->where('n', $i)->value('adapter_path'),
+                ]);
+                $stage = 'evaluate_dev:'.($i ?? 'base');
+                break;
             case 'generate_train':
+                $devPath = $this->dataset($run, 'dev')?->remote_path;
                 $hardPath = $this->dataset($run, 'eval-hard')?->remote_path;
                 $slices = $i > 1 ? ($this->decision($run, $i - 1, $this->targetSlice($run))?->next_slices ?: null) : null;
                 $payload = [
                     'run_id' => $run->slug, 'purpose' => 'train', 'iteration' => $i, 'task_spec' => $spec,
                     'seed_examples' => [], 'n' => $slices ? (int) collect($slices)->sum('n') : $run->train_n,
-                    'avoid_near' => array_values(array_filter([$evalPath, $hardPath])),
+                    'avoid_near' => array_values(array_filter([$evalPath, $devPath, $hardPath])),
                 ];
                 if ($slices) {
                     $payload['target_slices'] = $slices;
@@ -333,8 +363,13 @@ class RunPipeline
 
         switch ($step) {
             case 'generate_eval':
+                $this->storeDataset($run, 'eval', null, $result);
+                break;
+            case 'generate_dev':
+                $this->storeDataset($run, 'dev', null, $result);
+                break;
             case 'generate_train':
-                $this->storeDataset($run, $step === 'generate_eval' ? 'eval' : 'train', $i, $result);
+                $this->storeDataset($run, 'train', $i, $result);
                 break;
             case 'evaluate_base':
             case 'evaluate':
@@ -342,6 +377,9 @@ class RunPipeline
                 break;
             case 'evaluate_hard':
                 $this->storeEvaluation($run, $i, $result, 'hard');
+                break;
+            case 'evaluate_dev':
+                $this->storeEvaluation($run, $i, $result, 'dev');
                 break;
             case 'train':
                 $this->storeTraining($run, $i, $result);
@@ -351,7 +389,11 @@ class RunPipeline
 
     private function storeDataset(Run $run, string $purpose, ?int $iteration, array $result): void
     {
-        $name = $purpose === 'eval' ? 'eval.jsonl' : "train-$iteration.jsonl";
+        $name = match ($purpose) {
+            'eval' => 'eval.jsonl',
+            'dev' => 'dev.jsonl',
+            default => "train-$iteration.jsonl",
+        };
         $this->worker->downloadArtifact($run->slug, $this->relative($run, $result['path']), "{$run->slug}/$name");
 
         $body = (string) Storage::disk('runs')->get("{$run->slug}/$name");
@@ -376,7 +418,11 @@ class RunPipeline
 
     private function storeEvaluation(Run $run, ?int $iteration, array $metrics, string $slice = 'clean'): void
     {
-        $evalSet = $this->dataset($run, $slice === 'hard' ? 'eval-hard' : 'eval');
+        $evalSet = match ($slice) {
+            'hard' => $this->dataset($run, 'eval-hard'),
+            'dev' => $this->dataset($run, 'dev'),
+            default => $this->dataset($run, 'eval'),
+        };
         $evalSha = $evalSet->sha256;
         if (($metrics['eval_sha256'] ?? null) !== $evalSha) {
             throw new WorkerRejected(409, 'eval set hash changed: stored '.$evalSha.', evaluation used '.($metrics['eval_sha256'] ?? 'none'));
@@ -396,7 +442,12 @@ class RunPipeline
             ],
         );
 
-        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration").($slice === 'hard' ? '.eval-hard' : '').'/metrics.json', json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $suffix = match ($slice) {
+            'hard' => '.eval-hard',
+            'dev' => '.eval-dev',
+            default => '',
+        };
+        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration")."$suffix/metrics.json", json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 
     private function storeTraining(Run $run, int $i, array $result): void
@@ -430,6 +481,7 @@ class RunPipeline
         $latest = $this->evaluation($run, $i, $slice);
         $previous = $i > 1 ? $this->evaluation($run, $i - 1, $slice) : null;
         $train = $this->dataset($run, 'train', $i);
+        $devLatest = $this->devEvaluation($run, $i);
 
         $verdict = StopRules::evaluate(
             $run->target_value,
@@ -443,13 +495,34 @@ class RunPipeline
 
         if (! $verdict['stop']) {
             $run->update(['stage' => "analyze:$i"]);
-            $earlier = $run->decisions()->where('slice', $slice)->where('iteration', '<', $i)->get()->map(fn ($d) => [
-                'iteration' => $d->iteration,
-                'reason' => $d->orchestrator_output['reason'] ?? '',
-                'next_slices' => $d->next_slices,
-            ])->all();
+            $earlier = $run->decisions()->where('slice', $slice)->where('iteration', '<', $i)->orderBy('iteration')->get()->map(function ($d) use ($run) {
+                $devAfter = $this->devEvaluation($run, $d->iteration);
+                $devBefore = $d->iteration > 1
+                    ? $this->devEvaluation($run, $d->iteration - 1)
+                    : $this->devEvaluation($run, null);
 
-            $analysis = $this->analyst->analyze($run, $latest, $earlier);
+                $delta = null;
+                if ($devAfter && $devBefore) {
+                    $overallBefore = (float) $run->metricOf($devBefore->metrics);
+                    $overallAfter = (float) $run->metricOf($devAfter->metrics);
+                    $pcBefore = $devBefore->metrics['per_class'] ?? [];
+                    $pcAfter = $devAfter->metrics['per_class'] ?? [];
+                    $perClass = [];
+                    foreach (array_keys($pcAfter) as $cls) {
+                        $perClass[$cls] = round(($pcAfter[$cls]['f1'] ?? 0) - ($pcBefore[$cls]['f1'] ?? 0), 4);
+                    }
+                    $delta = ['overall' => round($overallAfter - $overallBefore, 4), 'per_class' => $perClass];
+                }
+
+                return [
+                    'iteration' => $d->iteration,
+                    'reason' => $d->orchestrator_output['reason'] ?? '',
+                    'next_slices' => $d->next_slices,
+                    'delta_metrics' => $delta,
+                ];
+            })->all();
+
+            $analysis = $this->analyst->analyze($run, $latest, $earlier, $devLatest);
             $data = array_merge($data, [
                 'orchestrator_input' => $analysis['input'],
                 'orchestrator_output' => $analysis['output'],
@@ -504,6 +577,11 @@ class RunPipeline
     private function evaluation(Run $run, ?int $iteration, string $slice = 'clean'): ?Evaluation
     {
         return ($slice === 'hard' ? $run->hardEvaluations() : $run->evaluations())->where('iteration', $iteration)->first();
+    }
+
+    private function devEvaluation(Run $run, ?int $iteration): ?Evaluation
+    {
+        return $run->devEvaluations()->where('iteration', $iteration)->first();
     }
 
     private function decision(Run $run, int $iteration, string $slice): ?Decision

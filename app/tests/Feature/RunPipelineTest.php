@@ -6,6 +6,7 @@ use App\Models\Run;
 use App\Services\Pipeline\RunPipeline;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\FakeWorker;
 use Tests\Support\RunsPipeline;
 use Tests\TestCase;
 
@@ -49,7 +50,8 @@ class RunPipelineTest extends TestCase
         $first = $run->decisions()->where('iteration', 1)->first();
         $this->assertSame('claude', $first->orchestrator_output['used']);
         $this->assertSame('returns', $first->next_slices[0]['name']);
-        $secondTrain = $this->worker->sent('POST', '/generate')[2]['body'];
+        // generates[0]=eval, [1]=dev, [2]=train-1, [3]=train-2
+        $secondTrain = $this->worker->sent('POST', '/generate')[3]['body'];
         $this->assertSame(2, $secondTrain['iteration']);
         $this->assertSame($first->next_slices, $secondTrain['target_slices']);
         $this->assertSame(500, $secondTrain['n']);
@@ -118,7 +120,8 @@ class RunPipelineTest extends TestCase
         $this->assertSame(Run::NOT_WORTH_IT, $run->status);
         $this->assertSame('baseline already meets target', $run->stop_reason);
         $this->assertCount(0, $this->worker->sent('POST', '/train'));
-        $this->assertCount(1, $this->worker->sent('POST', '/generate'));
+        // eval + dev both generated before the baseline check
+        $this->assertCount(2, $this->worker->sent('POST', '/generate'));
     }
 
     public function test_leakage_above_thirty_percent_on_first_iteration_stops_the_run(): void
@@ -163,7 +166,7 @@ class RunPipelineTest extends TestCase
         $run = $this->startAndDrain($this->makeRun());
 
         $eval = $run->datasets()->where('purpose', 'eval')->first();
-        $this->assertSame(\Tests\Support\FakeWorker::SHA, $eval->sha256);
+        $this->assertSame(FakeWorker::SHA, $eval->sha256);
         $this->assertNotNull($eval->frozen_at);
         $this->assertSame($eval->sha256, $run->evaluations()->whereNull('iteration')->value('eval_sha256'));
     }
@@ -192,19 +195,24 @@ class RunPipelineTest extends TestCase
         foreach ($run->holdout_examples as $example) {
             $this->assertStringNotContainsString(json_encode($example['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $outgoing);
         }
-        // seeds, in contrast, are sent to the eval generation (and only there)
+        // seeds are sent to eval and dev generation; train generation gets none
         $generates = $this->worker->sent('POST', '/generate');
-        $this->assertSame($run->seed_examples, $generates[0]['body']['seed_examples']);
-        $this->assertSame([], $generates[1]['body']['seed_examples']);
+        $this->assertSame($run->seed_examples, $generates[0]['body']['seed_examples']); // eval
+        $this->assertSame($run->seed_examples, $generates[1]['body']['seed_examples']); // dev
+        $this->assertSame([], $generates[2]['body']['seed_examples']); // train-1
     }
 
-    public function test_train_generation_avoids_the_eval_file(): void
+    public function test_train_generation_avoids_eval_and_dev_files(): void
     {
         $run = $this->startAndDrain($this->makeRun());
 
-        $train = $this->worker->sent('POST', '/generate')[1]['body'];
+        // generates[0]=eval, generates[1]=dev, generates[2]=first train
+        $train = $this->worker->sent('POST', '/generate')[2]['body'];
         $this->assertSame('train', $train['purpose']);
-        $this->assertSame(["/data/runs/{$run->slug}/eval.jsonl"], $train['avoid_near']);
+        $this->assertSame([
+            "/data/runs/{$run->slug}/eval.jsonl",
+            "/data/runs/{$run->slug}/dev.jsonl",
+        ], $train['avoid_near']);
         $this->assertSame(1000, $train['n']);
         $this->assertArrayNotHasKey('target_slices', $train);
     }
@@ -269,6 +277,23 @@ class RunPipelineTest extends TestCase
         $this->assertSame(Run::FAILED, $run->status);
         $this->assertStringContainsString('worker restarted', $run->error);
         $this->assertNull($run->current_worker_job_id);
+    }
+
+    public function test_previous_decisions_carry_dev_delta_metrics(): void
+    {
+        // iter-2 score (0.70) is below the target (0.90) so analysis runs and orchestrator_input is set
+        $this->worker->iterations = [1 => 0.60, 2 => 0.70, 3 => 0.90];
+        $run = $this->startAndDrain($this->makeRun(['require_review' => false]));
+
+        // Decision at iter-2 didn't stop (target not met yet), so orchestrator_input is populated.
+        $decision2 = $run->decisions()->where('iteration', 2)->first();
+        $this->assertNotNull($decision2->orchestrator_input);
+
+        $content = json_decode($decision2->orchestrator_input['messages'][0]['content'], true);
+        $prev = $content['previous_decisions'][0];
+        $this->assertArrayHasKey('delta_metrics', $prev);
+        $this->assertArrayHasKey('overall', $prev['delta_metrics']);
+        $this->assertArrayHasKey('per_class', $prev['delta_metrics']);
     }
 
     public function test_next_step_is_derived_from_the_database_only(): void

@@ -27,14 +27,14 @@ Rules:
 - "stop" is your opinion on whether more training would help; it is recorded but does not end the loop.
 TXT;
 
-    public function analyze(Run $run, Evaluation $latest, array $previousDecisions): array
+    public function analyze(Run $run, Evaluation $latest, array $previousDecisions, ?Evaluation $devEval = null): array
     {
         $input = [
             'model' => config('chirak.orchestrator.model'),
             // The model thinks adaptively; 2000 left too little room for the answer with the eval-hard judge.
             'max_tokens' => 8000,
             'system' => self::SYSTEM,
-            'messages' => [['role' => 'user', 'content' => $this->userPrompt($run, $latest, $previousDecisions)]],
+            'messages' => [['role' => 'user', 'content' => $this->userPrompt($run, $latest, $previousDecisions, $devEval)]],
         ];
 
         $attempts = [];
@@ -164,15 +164,29 @@ TXT;
         return $start !== false && $end > $start ? json_decode(substr($raw, $start, $end - $start + 1), true) : null;
     }
 
-    private function userPrompt(Run $run, Evaluation $latest, array $previousDecisions): string
+    private function userPrompt(Run $run, Evaluation $latest, array $previousDecisions, ?Evaluation $devEval = null): string
     {
-        $metrics = $latest->metrics;
+        $source = $devEval ?? $latest;
+        $metrics = $source->metrics;
         $failures = array_map(fn ($f) => [
             'input' => mb_substr((string) ($f['input'] ?? ''), 0, 400),
             'expected' => $f['expected'] ?? null,
             'got' => $f['got'] ?? null,
             'error' => $f['error'] ?? null,
-        ], array_slice($latest->failures ?? [], 0, 50));
+        ], array_slice($source->failures ?? [], 0, 50));
+
+        $formattedDecisions = array_map(function ($d) {
+            $entry = [
+                'iteration' => $d['iteration'],
+                'reason' => $d['reason'],
+                'next_slices' => $d['next_slices'],
+            ];
+            if (isset($d['delta_metrics'])) {
+                $entry['delta_metrics'] = $d['delta_metrics'];
+            }
+
+            return $entry;
+        }, $previousDecisions);
 
         return json_encode([
             'task_spec' => $run->task_spec,
@@ -182,11 +196,7 @@ TXT;
             'metrics' => collect($metrics)->except(['confusion', 'failures'])->all(),
             'confusion' => $metrics['confusion'] ?? null,
             'failures' => $failures,
-            'previous_decisions' => array_map(fn ($d) => [
-                'iteration' => $d['iteration'],
-                'reason' => $d['reason'],
-                'next_slices' => $d['next_slices'],
-            ], $previousDecisions),
+            'previous_decisions' => $formattedDecisions,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 }

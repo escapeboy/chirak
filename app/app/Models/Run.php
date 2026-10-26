@@ -10,11 +10,17 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Run extends Model
 {
     public const QUEUED = 'queued';
+
     public const RUNNING = 'running';
+
     public const WAITING_FOR_WORKER = 'waiting_for_worker';
+
     public const AWAITING_REVIEW = 'awaiting_review';
+
     public const COMPLETED = 'completed';
+
     public const NOT_WORTH_IT = 'not_worth_it';
+
     public const FAILED = 'failed';
 
     protected $fillable = [
@@ -60,6 +66,12 @@ class Run extends Model
     public function hardEvaluations(): HasMany
     {
         return $this->hasMany(Evaluation::class)->where('slice', 'hard');
+    }
+
+    /** Scores on the frozen dev set (the "dev" slice), used by the FailureAnalyst. */
+    public function devEvaluations(): HasMany
+    {
+        return $this->hasMany(Evaluation::class)->where('slice', 'dev');
     }
 
     /** Scores on the shop's own frozen tickets (the "own" slice). */
