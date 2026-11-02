@@ -1,5 +1,9 @@
 """FastAPI app implementing docs/worker-api.md. Heavy backends are injected so tests can fake them."""
+import hashlib
 import hmac
+import os
+import re
+import shutil
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Callable
@@ -23,6 +27,9 @@ from .train import run_train
 from .vllm import LlmBackend, VllmError, VllmManager
 
 
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+
+
 @dataclass
 class Services:
     llm: LlmBackend
@@ -30,6 +37,7 @@ class Services:
     runner: JobRunner
     gpu_info: Callable[[], dict] = gpu_info
     train: Callable = run_train
+    judge_factory: Callable | None = None  # builds the Claude judge for train generation with judge_cap
 
 
 def default_services(settings: Settings) -> Services:
@@ -40,6 +48,14 @@ def default_services(settings: Settings) -> Services:
         embedder=SentenceTransformerEmbedder(settings.embedding_model),
         runner=JobRunner(JobStore(settings.jobs_dir)),
     )
+
+
+def default_judge():
+    import os
+
+    from .judge import ClaudeJudge
+
+    return ClaudeJudge() if os.environ.get("ANTHROPIC_API_KEY") else None
 
 
 def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
@@ -91,10 +107,24 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         rdir = run_dir(settings, req.run_id)
         if req.purpose == "eval" and (rdir / "eval.jsonl").exists():
             raise HTTPException(409, "eval.jsonl already exists for this run; the eval set is frozen")
+        if req.purpose == "pool" and (rdir / f"pool-{req.iteration}.jsonl").exists():
+            raise HTTPException(409, f"pool-{req.iteration}.jsonl already exists for this run")
         avoid = [str(resolve_under_runs(settings, p)) for p in req.avoid_near] if req.purpose == "train" else []
+        if req.purpose == "train" and str(resolve_under_runs(settings, str(rdir / "eval.jsonl"))) not in avoid:
+            # without the run's own eval file the leakage guard would silently check nothing
+            raise HTTPException(400, "train generation requires this run's eval.jsonl in avoid_near")
+        hard = rdir / "eval-hard.jsonl"
+        if req.purpose == "train" and hard.exists() and str(resolve_under_runs(settings, str(hard))) not in avoid:
+            raise HTTPException(400, "this run has eval-hard.jsonl; train generation must avoid it too")
+        judge = None
+        if req.judge_cap and req.purpose == "train":
+            factory = svc.judge_factory or default_judge
+            judge = factory()
+            if judge is None:
+                raise HTTPException(400, "judge_cap needs ANTHROPIC_API_KEY on the worker")
         job_id = svc.runner.submit(
             "generate", req.run_id,
-            lambda ctx: run_generate(req, settings, svc.llm, svc.embedder, ctx, avoid))
+            lambda ctx: run_generate(req, settings, svc.llm, svc.embedder, ctx, avoid, judge))
         return {"job_id": job_id}
 
     @app.post("/train", status_code=202, dependencies=[Depends(auth)])
@@ -149,6 +179,46 @@ def create_app(settings: Settings, services: Services | None = None) -> FastAPI:
         raw, ms = svc.llm.chat(req.model, student_messages(req.task_spec, req.input), temperature=0, max_tokens=256)
         parsed, err = parse_student_answer(raw, req.task_spec)
         return {"raw": raw, "parsed": parsed, "valid": parsed is not None, "error": err, "latency_ms": round(ms)}
+
+    @app.put("/runs/{run_id}/files/{name}", dependencies=[Depends(auth)])
+    async def put_file(run_id: str, name: str, request: Request):
+        """Store a JSONL file the control plane built (the run's own-tickets eval). Files are write-once."""
+        if not re.fullmatch(r"[a-z0-9._-]+\.jsonl", name) or name.startswith("."):
+            raise HTTPException(400, "name must match [a-z0-9._-]+.jsonl")
+        body = await request.body()
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "file too large")
+        rdir = run_dir(settings, run_id)
+        target = rdir / name
+        sha = hashlib.sha256(body).hexdigest()
+        if target.exists():
+            if hashlib.sha256(target.read_bytes()).hexdigest() != sha:
+                raise HTTPException(409, f"{name} already exists with different content")
+        else:
+            rdir.mkdir(parents=True, exist_ok=True)
+            tmp = rdir / f"{name}.tmp"
+            tmp.write_bytes(body)
+            os.replace(tmp, target)
+        return {"path": str(target), "sha256": sha, "bytes": len(body)}
+
+    @app.delete("/runs/{run_id}/own", dependencies=[Depends(auth)])
+    def delete_own(run_id: str, train_real: bool = False):
+        """Remove the run's own-tickets eval file and its eval-own results (they repeat ticket texts), and with
+        train_real its train-real.jsonl, when that file holds a shop's own tickets. Idempotent."""
+        rdir = run_dir(settings, run_id)
+        base = rdir.resolve()
+        victims = [rdir / "eval-own.jsonl", *sorted((rdir / "evals").glob("*.eval-own"))]
+        if train_real:
+            victims.append(rdir / "train-real.jsonl")
+        deleted = []
+        for p in victims:
+            if p.is_symlink() or not (p.is_file() or p.is_dir()):
+                continue
+            if base not in p.resolve().parents:
+                continue
+            shutil.rmtree(p) if p.is_dir() else p.unlink()
+            deleted.append(str(p.relative_to(rdir)))
+        return {"deleted": deleted}
 
     @app.get("/artifacts/{run_id}/{path:path}", dependencies=[Depends(auth)])
     def artifact(run_id: str, path: str):

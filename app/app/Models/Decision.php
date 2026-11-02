@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Decision extends Model
 {
     protected $fillable = [
-        'run_id', 'iteration', 'orchestrator_input', 'orchestrator_output', 'next_slices', 'stop_rule', 'model',
+        'run_id', 'iteration', 'slice', 'orchestrator_input', 'orchestrator_output', 'next_slices', 'stop_rule', 'model',
     ];
 
     protected function casts(): array
