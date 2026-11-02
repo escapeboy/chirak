@@ -1,0 +1,12 @@
+title	Chirak turns a task description and a few examples into a small specialist model. Training and evaluation run on one AMD Instinct GPU.
+wizard	You describe the job and give a few examples. Here: support ticket triage for an online shop, in Bulgarian and English. The model must return the category, the urgency, and whether a human is needed, as strict JSON.
+run	This is run six, on the public demo. The task comes with written labelling rules, and part of the training data is real customer service chats from the ABCD dataset, kept apart from every evaluation set.
+eval	Before anything is trained, Chirak freezes an evaluation set with a hash, and scores the untouched four billion parameter base model on it.
+results	Exact match, all three fields right, goes from sixty-five percent for the base model to ninety-three percent after two iterations. The target was ninety-two, so the loop stopped.
+leakage	Training data comes from a different prompt that never sees the eval. Near copies of eval tickets are dropped and counted, and every number here comes from stored results.
+decisions	After each iteration, Claude reads the failures and asks for targeted training data, in strict JSON. The stop rules are plain code.
+own	A shop can also upload its own tickets. Here, one hundred forty-six real customer tweets, masked and labelled by Claude, not by a person. On them, urgency is right eighty percent of the time instead of forty-eight. Category moves only from sixty-eight to seventy-one. Real text is harder, and the report shows it.
+fresh	The playground runs live on a small CPU server, with quantized copies of both models. A new ticket, typed now: ten days without a delivery, and the customer wants the money back.
+answer	The base model calls it a complaint. The adapter follows the shop's rule: a late parcel is shipping, however angry the customer is.
+report	Every run gets a public, read only report, built from the stored results. It keeps working when the GPU is switched off.
+arch	A Laravel control plane decides. A FastAPI worker on one AMD Instinct GPU does the work, with vLLM, ROCm and PyTorch. Chirak is open source, under the MIT license.

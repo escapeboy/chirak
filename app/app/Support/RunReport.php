@@ -22,9 +22,17 @@ class RunReport
 
     public Collection $decisions;
 
+    /** Scores on eval-hard, keyed like $evaluations; empty when the run has no eval-hard. */
+    public Collection $hardEvaluations;
+
+    /** Scores on the shop's own tickets, keyed like $evaluations. */
+    public Collection $ownEvaluations;
+
     public function __construct(public Run $run)
     {
+        $this->ownEvaluations = $run->ownEvaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
         $this->evaluations = $run->evaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
+        $this->hardEvaluations = $run->hardEvaluations()->get()->keyBy(fn ($e) => $e->iteration ?? 'base');
         $this->iterations = $run->iterations()->get();
         $this->datasets = $run->datasets()->get();
         $this->decisions = $run->decisions()->get();
@@ -45,7 +53,7 @@ class RunReport
         return $this->evaluations->filter(fn ($e) => $e->iteration !== null)->sortByDesc('iteration')->first();
     }
 
-    /** @return array<int, array{label: string, iteration: ?int, accuracy: ?float, macro_f1: ?float, json_valid_rate: ?float, exact_match: ?float, is_best: bool}> */
+    /** @return array<int, array{label: string, iteration: ?int, accuracy: ?float, macro_f1: ?float, json_valid_rate: ?float, exact_match: ?float, hard_macro_f1: ?float, hard_exact_match: ?float, is_best: bool}> */
     public function resultRows(): array
     {
         $rows = [];
@@ -58,6 +66,8 @@ class RunReport
                 'macro_f1' => $m['macro_f1'] ?? null,
                 'json_valid_rate' => $m['json_valid_rate'] ?? null,
                 'exact_match' => $m['exact_match'] ?? null,
+                'hard_macro_f1' => $this->hardEvaluations->get($e->iteration ?? 'base')?->metrics['macro_f1'] ?? null,
+                'hard_exact_match' => $this->hardEvaluations->get($e->iteration ?? 'base')?->metrics['exact_match'] ?? null,
                 'is_best' => $e->iteration !== null && $e->iteration === $this->run->best_iteration,
             ];
         }
@@ -99,12 +109,13 @@ class RunReport
         return $this->baseline()?->metrics['confusion'] ?? null ? 'Baseline' : null;
     }
 
-    /** @return array<int, array{iteration: int, dropped: int, candidates: ?int, rate: float, stopped: bool}> */
+    /** @return array<int, array{iteration: int, dropped: int, label_mismatch: ?int, candidates: ?int, rate: float, stopped: bool}> */
     public function leakage(): array
     {
         return $this->datasets->where('purpose', 'train')->sortBy('iteration')->map(fn (Dataset $d) => [
             'iteration' => $d->iteration,
             'dropped' => $d->leakageDropped(),
+            'label_mismatch' => $d->stats['dropped']['label_mismatch'] ?? null,
             'candidates' => $d->stats['n_candidates'] ?? null,
             'rate' => $d->leakageDropRate(),
             'stopped' => \App\Services\Pipeline\StopRules::leakageExceeded($d->leakageDropRate()),
@@ -114,6 +125,87 @@ class RunReport
     public function evalDataset(): ?Dataset
     {
         return $this->datasets->firstWhere('purpose', 'eval');
+    }
+
+    public function hardDataset(): ?Dataset
+    {
+        return $this->datasets->firstWhere('purpose', 'eval-hard');
+    }
+
+    public function ownDataset(): ?Dataset
+    {
+        return $this->datasets->firstWhere('purpose', 'eval-own');
+    }
+
+    /**
+     * The "Own tickets" card: counts, who labelled, base vs adapter scores, and the few examples the owner approved.
+     * No other ticket text.
+     *
+     * @return ?array{n: int, train: ?array{share: int, n: int, overlap_dropped: int}, follow_up: ?\App\Models\Run, trained_from: ?array{run: \App\Models\Run, n: int}, label_sources: array{judge: int, human: int}, dropped: int, examples: array<int, array{text: string, label: array, label_source: ?string}>, rows: array<int, array{label: string, accuracy: ?float, macro_f1: ?float, fields: array<string, float>}>}
+     */
+    public function own(): ?array
+    {
+        $dataset = $this->ownDataset();
+        if (! $dataset) {
+            return null;
+        }
+
+        $models = ['base' => 'Base model'];
+        if ($this->run->best_iteration) {
+            $models[$this->run->best_iteration] = 'Served adapter (iteration '.$this->run->best_iteration.')';
+        }
+        $rows = [];
+        foreach ($models as $key => $label) {
+            if ($e = $this->ownEvaluations->get($key)) {
+                $rows[] = [
+                    'label' => $label, 'accuracy' => $e->metrics['accuracy'] ?? null, 'macro_f1' => $e->metrics['macro_f1'] ?? null,
+                    'fields' => collect($e->metrics['fields'] ?? [])->map(fn ($f) => $f['accuracy'])->all(),
+                ];
+            }
+        }
+
+        return [
+            'n' => $dataset->rows(),
+            'label_sources' => $dataset->stats['label_sources'] ?? ['judge' => 0, 'human' => 0],
+            'label_origin' => $dataset->stats['label_origin'] ?? null,
+            'dropped' => (int) ($dataset->stats['dropped'] ?? 0),
+            'train' => $dataset->stats['train'] ?? null,
+            'follow_up' => $this->run->followUp,
+            'trained_from' => $this->run->trainedFrom ? ['run' => $this->run->trainedFrom, 'n' => $this->datasets->firstWhere('purpose', 'train-real')?->n ?? 0] : null,
+            'examples' => $this->run->ownItems()->where('public', true)->get(['text', 'label', 'label_source'])->map->only(['text', 'label', 'label_source'])->all(),
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Headline: the target metric per slice for the base model and every iteration. No blended number.
+     *
+     * @return array<string, array<int|string, float>> slice => [base|iteration => value]
+     */
+    public function headline(): array
+    {
+        $out = [];
+        foreach (['clean' => $this->evaluations, 'hard' => $this->hardEvaluations] as $slice => $evals) {
+            foreach ($evals->sortBy(fn ($e) => $e->iteration ?? 0) as $key => $e) {
+                $out[$slice][$key] = $this->run->metricOf($e->metrics);
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return array<int, array{input: string, expected: array, base: ?\App\Models\HoldoutPrediction, adapter: ?\App\Models\HoldoutPrediction}> */
+    public function holdout(): array
+    {
+        $preds = $this->run->holdoutPredictions()->get();
+        $iteration = $this->run->best_iteration;
+
+        return $preds->groupBy('position')->map(fn ($p) => [
+            'input' => $p->first()->input,
+            'expected' => $p->first()->expected,
+            'base' => $p->firstWhere('iteration', null),
+            'adapter' => $p->firstWhere('iteration', $iteration),
+        ])->values()->all();
     }
 
     /** @return array<int, array<int, array{step: int, loss: float}>> */
@@ -154,7 +246,11 @@ class RunReport
             }
             $defs[] = ["LoRA training, iteration $i", $this->iterations->where('n', $i)->whereNotNull('finished_at')->isNotEmpty(), "train:$i"];
             $defs[] = ["Evaluation, iteration $i", $this->evaluations->has($i), "evaluate:$i"];
-            $defs[] = ["Failure analysis and stop rules, iteration $i", $this->decisions->where('iteration', $i)->isNotEmpty(), "analyze:$i"];
+            if ($this->hardDataset()) {
+                $defs[] = ["Evaluation on eval-hard, iteration $i", $this->hardEvaluations->has($i), "evaluate_hard:$i"];
+            }
+            $slice = $this->hardDataset() ? 'hard' : 'clean';
+            $defs[] = ["Failure analysis and stop rules, iteration $i", $this->decisions->where('iteration', $i)->where('slice', $slice)->isNotEmpty(), "analyze:$i"];
         }
 
         if ($run->status === Run::NOT_WORTH_IT) {

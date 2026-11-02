@@ -27,9 +27,7 @@ class RunPipeline
         'target_modules' => ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
     ];
 
-    public function __construct(private WorkerClient $worker, private FailureAnalyst $analyst)
-    {
-    }
+    public function __construct(private WorkerClient $worker, private FailureAnalyst $analyst) {}
 
     public function start(Run $run): void
     {
@@ -59,12 +57,28 @@ class RunPipeline
             return ['step' => 'generate_eval', 'iteration' => null];
         }
 
+        $dev = $this->dataset($run, 'dev');
+        if (! $dev) {
+            return ['step' => 'generate_dev', 'iteration' => null];
+        }
+
         $baseline = $this->evaluation($run, null);
         if (! $baseline) {
             return ['step' => 'evaluate_base', 'iteration' => null];
         }
 
-        if ($run->metricOf($baseline->metrics) >= $run->target_value) {
+        if (! $this->devEvaluation($run, null)) {
+            return ['step' => 'evaluate_dev', 'iteration' => null];
+        }
+
+        // With an eval-hard set the target, the analysis and the stop rules use the hard slice;
+        // every model is still scored on both.
+        $slice = $this->targetSlice($run);
+        if ($slice === 'hard' && ! $this->evaluation($run, null, 'hard')) {
+            return ['step' => 'evaluate_hard', 'iteration' => null];
+        }
+
+        if ($run->metricOf($this->evaluation($run, null, $slice)->metrics) >= $run->target_value) {
             return ['step' => 'not_worth_it', 'iteration' => null];
         }
 
@@ -90,7 +104,15 @@ class RunPipeline
                 return ['step' => 'evaluate', 'iteration' => $i];
             }
 
-            $decision = $run->decisions()->where('iteration', $i)->first();
+            if ($slice === 'hard' && ! $this->evaluation($run, $i, 'hard')) {
+                return ['step' => 'evaluate_hard', 'iteration' => $i];
+            }
+
+            if (! $this->devEvaluation($run, $i)) {
+                return ['step' => 'evaluate_dev', 'iteration' => $i];
+            }
+
+            $decision = $this->decision($run, $i, $slice);
             if (! $decision) {
                 return ['step' => 'decide', 'iteration' => $i];
             }
@@ -214,7 +236,17 @@ class RunPipeline
                 ? PollWorkerJob::dispatch($run->id, $attempt + 1)->delay($delay)
                 : AdvanceRun::dispatch($run->id, $attempt + 1)->delay($delay);
         } catch (WorkerRejected $e) {
-            $this->fail($run, 'worker rejected the request ('.$e->status.'): '.$e->getMessage());
+            if ($e->status !== 409 || ! str_starts_with($e->getMessage(), 'GPU is busy')) {
+                $this->fail($run, 'worker rejected the request ('.$e->status.'): '.$e->getMessage());
+
+                return;
+            }
+            // another run holds the GPU (the worker runs one generate or train job at a time): wait like for an outage
+            $run->update(['status' => Run::WAITING_FOR_WORKER, 'error' => $e->getMessage()]);
+            $delay = now()->addSeconds(min(300, 15 * 2 ** min($attempt, 5)));
+            $run->current_worker_job_id
+                ? PollWorkerJob::dispatch($run->id, $attempt + 1)->delay($delay)
+                : AdvanceRun::dispatch($run->id, $attempt + 1)->delay($delay);
         }
     }
 
@@ -236,6 +268,14 @@ class RunPipeline
                 ]);
                 $stage = 'generate_eval';
                 break;
+            case 'generate_dev':
+                $jobId = $this->worker->generate([
+                    'run_id' => $run->slug, 'purpose' => 'dev', 'task_spec' => $spec,
+                    'seed_examples' => $run->seed_examples, 'n' => $run->eval_n,
+                    'avoid_near' => [$evalPath],
+                ]);
+                $stage = 'generate_dev';
+                break;
             case 'evaluate_base':
                 $jobId = $this->worker->evaluate([
                     'run_id' => $run->slug, 'eval_file' => $evalPath, 'model' => 'base',
@@ -243,24 +283,48 @@ class RunPipeline
                 ]);
                 $stage = 'evaluate_base';
                 break;
+            case 'evaluate_dev':
+                $devPath = $this->dataset($run, 'dev')?->remote_path;
+                $label = $i === null ? 'base' : "iter-$i";
+                $jobId = $this->worker->evaluate([
+                    'run_id' => $run->slug, 'eval_file' => $devPath, 'task_spec' => $spec,
+                    'label' => "$label.eval-dev",
+                    'model' => $i === null ? 'base' : $run->iterations()->where('n', $i)->value('adapter_path'),
+                ]);
+                $stage = 'evaluate_dev:'.($i ?? 'base');
+                break;
             case 'generate_train':
-                $slices = $i > 1 ? ($run->decisions()->where('iteration', $i - 1)->first()?->next_slices ?: null) : null;
+                $devPath = $this->dataset($run, 'dev')?->remote_path;
+                $hardPath = $this->dataset($run, 'eval-hard')?->remote_path;
+                $slices = $i > 1 ? ($this->decision($run, $i - 1, $this->targetSlice($run))?->next_slices ?: null) : null;
                 $payload = [
                     'run_id' => $run->slug, 'purpose' => 'train', 'iteration' => $i, 'task_spec' => $spec,
                     'seed_examples' => [], 'n' => $slices ? (int) collect($slices)->sum('n') : $run->train_n,
-                    'avoid_near' => [$evalPath],
+                    'avoid_near' => array_values(array_filter([$evalPath, $devPath, $hardPath])),
                 ];
                 if ($slices) {
                     $payload['target_slices'] = $slices;
+                }
+                if ($slices && $hardPath) {
+                    // Targeted slices aim at the ambiguous cases the label check rejects; the judge may keep some.
+                    $payload['judge_cap'] = config('chirak.judge_cap');
                 }
                 $jobId = $this->worker->generate($payload);
                 $stage = "generate_train:$i";
                 break;
             case 'train':
+                // write-once and idempotent on the worker, so a retry or a hand-made copy of the same file is fine
+                foreach ($run->datasets()->where('purpose', 'train-real')->get() as $real) {
+                    if ($real->local_path && Storage::disk('runs')->exists($real->local_path)) {
+                        $this->worker->putFile($run->slug, basename($real->remote_path), (string) Storage::disk('runs')->get($real->local_path));
+                    }
+                }
                 $config = [
                     'run_id' => $run->slug, 'iteration' => $i,
+                    // real labelled tickets (purpose train-real) go into every iteration next to the synthetic files
                     'train_files' => $run->datasets()->where('purpose', 'train')->where('iteration', '<=', $i)
-                        ->orderBy('iteration')->pluck('remote_path')->all(),
+                        ->orderBy('iteration')->pluck('remote_path')
+                        ->merge($run->datasets()->where('purpose', 'train-real')->pluck('remote_path'))->all(),
                     'base_model' => $run->base_model, 'lora' => self::LORA, 'epochs' => 2, 'lr' => 0.0002, 'max_seq_len' => 1024,
                 ];
                 Iteration::updateOrCreate(
@@ -277,6 +341,15 @@ class RunPipeline
                 ]);
                 $stage = "evaluate:$i";
                 break;
+            case 'evaluate_hard':
+                $label = $i === null ? 'base' : "iter-$i";
+                $jobId = $this->worker->evaluate([
+                    'run_id' => $run->slug, 'eval_file' => $this->dataset($run, 'eval-hard')->remote_path,
+                    'task_spec' => $spec, 'label' => "$label.eval-hard",
+                    'model' => $i === null ? 'base' : $run->iterations()->where('n', $i)->value('adapter_path'),
+                ]);
+                $stage = 'evaluate_hard:'.($i ?? 'base');
+                break;
         }
 
         $run->update(['current_worker_job_id' => $jobId, 'stage' => $stage, 'status' => Run::RUNNING, 'error' => null]);
@@ -286,16 +359,27 @@ class RunPipeline
     private function handleResult(Run $run, array $result): void
     {
         [$step, $i] = array_pad(explode(':', $run->stage), 2, null);
-        $i = $i === null ? null : (int) $i;
+        $i = $i === null || $i === 'base' ? null : (int) $i;
 
         switch ($step) {
             case 'generate_eval':
+                $this->storeDataset($run, 'eval', null, $result);
+                break;
+            case 'generate_dev':
+                $this->storeDataset($run, 'dev', null, $result);
+                break;
             case 'generate_train':
-                $this->storeDataset($run, $step === 'generate_eval' ? 'eval' : 'train', $i, $result);
+                $this->storeDataset($run, 'train', $i, $result);
                 break;
             case 'evaluate_base':
             case 'evaluate':
                 $this->storeEvaluation($run, $i, $result);
+                break;
+            case 'evaluate_hard':
+                $this->storeEvaluation($run, $i, $result, 'hard');
+                break;
+            case 'evaluate_dev':
+                $this->storeEvaluation($run, $i, $result, 'dev');
                 break;
             case 'train':
                 $this->storeTraining($run, $i, $result);
@@ -305,15 +389,26 @@ class RunPipeline
 
     private function storeDataset(Run $run, string $purpose, ?int $iteration, array $result): void
     {
-        $name = $purpose === 'eval' ? 'eval.jsonl' : "train-$iteration.jsonl";
+        $name = match ($purpose) {
+            'eval' => 'eval.jsonl',
+            'dev' => 'dev.jsonl',
+            default => "train-$iteration.jsonl",
+        };
         $this->worker->downloadArtifact($run->slug, $this->relative($run, $result['path']), "{$run->slug}/$name");
+
+        $body = (string) Storage::disk('runs')->get("{$run->slug}/$name");
+        if (hash('sha256', $body) !== $result['sha256']) {
+            throw new WorkerRejected(409, "downloaded $name does not match the worker's sha256");
+        }
+        // The worker's `n` counts synthetic items only; the eval file also holds the seed tickets.
+        $result['n_rows'] = substr_count($body, "\n");
 
         Dataset::updateOrCreate(
             ['run_id' => $run->id, 'purpose' => $purpose, 'iteration' => $iteration],
             [
                 'remote_path' => $result['path'],
                 'local_path' => "{$run->slug}/$name",
-                'n' => $result['n'],
+                'n' => $result['n_rows'],
                 'sha256' => $result['sha256'],
                 'frozen_at' => ($result['frozen'] ?? false) ? now() : null,
                 'stats' => $result,
@@ -321,9 +416,14 @@ class RunPipeline
         );
     }
 
-    private function storeEvaluation(Run $run, ?int $iteration, array $metrics): void
+    private function storeEvaluation(Run $run, ?int $iteration, array $metrics, string $slice = 'clean'): void
     {
-        $evalSha = $this->dataset($run, 'eval')->sha256;
+        $evalSet = match ($slice) {
+            'hard' => $this->dataset($run, 'eval-hard'),
+            'dev' => $this->dataset($run, 'dev'),
+            default => $this->dataset($run, 'eval'),
+        };
+        $evalSha = $evalSet->sha256;
         if (($metrics['eval_sha256'] ?? null) !== $evalSha) {
             throw new WorkerRejected(409, 'eval set hash changed: stored '.$evalSha.', evaluation used '.($metrics['eval_sha256'] ?? 'none'));
         }
@@ -332,8 +432,9 @@ class RunPipeline
         unset($metrics['failures']);
 
         Evaluation::updateOrCreate(
-            ['run_id' => $run->id, 'iteration' => $iteration],
+            ['run_id' => $run->id, 'slice' => $slice, 'iteration' => $iteration],
             [
+                'dataset_id' => $evalSet->id,
                 'adapter_path' => $iteration === null ? null : $run->iterations()->where('n', $iteration)->value('adapter_path'),
                 'metrics' => $metrics,
                 'failures' => $failures,
@@ -341,7 +442,12 @@ class RunPipeline
             ],
         );
 
-        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration").'/metrics.json', json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $suffix = match ($slice) {
+            'hard' => '.eval-hard',
+            'dev' => '.eval-dev',
+            default => '',
+        };
+        Storage::disk('runs')->put("{$run->slug}/evals/".($iteration === null ? 'base' : "iter-$iteration")."$suffix/metrics.json", json_encode($metrics + ['failures' => $failures], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 
     private function storeTraining(Run $run, int $i, array $result): void
@@ -371,9 +477,11 @@ class RunPipeline
 
     private function decide(Run $run, int $i): void
     {
-        $latest = $this->evaluation($run, $i);
-        $previous = $i > 1 ? $this->evaluation($run, $i - 1) : null;
+        $slice = $this->targetSlice($run);
+        $latest = $this->evaluation($run, $i, $slice);
+        $previous = $i > 1 ? $this->evaluation($run, $i - 1, $slice) : null;
         $train = $this->dataset($run, 'train', $i);
+        $devLatest = $this->devEvaluation($run, $i);
 
         $verdict = StopRules::evaluate(
             $run->target_value,
@@ -381,19 +489,40 @@ class RunPipeline
             (float) $run->metricOf($latest->metrics),
             $previous ? $run->metricOf($previous->metrics) : null,
             $train->leakageDropRate(),
-        );
+        ) + ['slice' => $slice];
 
         $data = ['stop_rule' => $verdict, 'orchestrator_input' => null, 'orchestrator_output' => null, 'next_slices' => null, 'model' => null];
 
         if (! $verdict['stop']) {
             $run->update(['stage' => "analyze:$i"]);
-            $earlier = $run->decisions()->where('iteration', '<', $i)->get()->map(fn ($d) => [
-                'iteration' => $d->iteration,
-                'reason' => $d->orchestrator_output['reason'] ?? '',
-                'next_slices' => $d->next_slices,
-            ])->all();
+            $earlier = $run->decisions()->where('slice', $slice)->where('iteration', '<', $i)->orderBy('iteration')->get()->map(function ($d) use ($run) {
+                $devAfter = $this->devEvaluation($run, $d->iteration);
+                $devBefore = $d->iteration > 1
+                    ? $this->devEvaluation($run, $d->iteration - 1)
+                    : $this->devEvaluation($run, null);
 
-            $analysis = $this->analyst->analyze($run, $latest, $earlier);
+                $delta = null;
+                if ($devAfter && $devBefore) {
+                    $overallBefore = (float) $run->metricOf($devBefore->metrics);
+                    $overallAfter = (float) $run->metricOf($devAfter->metrics);
+                    $pcBefore = $devBefore->metrics['per_class'] ?? [];
+                    $pcAfter = $devAfter->metrics['per_class'] ?? [];
+                    $perClass = [];
+                    foreach (array_keys($pcAfter) as $cls) {
+                        $perClass[$cls] = round(($pcAfter[$cls]['f1'] ?? 0) - ($pcBefore[$cls]['f1'] ?? 0), 4);
+                    }
+                    $delta = ['overall' => round($overallAfter - $overallBefore, 4), 'per_class' => $perClass];
+                }
+
+                return [
+                    'iteration' => $d->iteration,
+                    'reason' => $d->orchestrator_output['reason'] ?? '',
+                    'next_slices' => $d->next_slices,
+                    'delta_metrics' => $delta,
+                ];
+            })->all();
+
+            $analysis = $this->analyst->analyze($run, $latest, $earlier, $devLatest);
             $data = array_merge($data, [
                 'orchestrator_input' => $analysis['input'],
                 'orchestrator_output' => $analysis['output'],
@@ -402,7 +531,7 @@ class RunPipeline
             ]);
         }
 
-        Decision::updateOrCreate(['run_id' => $run->id, 'iteration' => $i], $data);
+        Decision::updateOrCreate(['run_id' => $run->id, 'slice' => $slice, 'iteration' => $i], $data);
     }
 
     private function stopOnLeakage(Run $run, int $i): void
@@ -420,7 +549,8 @@ class RunPipeline
 
     private function finalize(Run $run, ?string $stopReason = null): void
     {
-        $best = $run->evaluations()->whereNotNull('iteration')->get()
+        $slice = $this->targetSlice($run);
+        $best = ($slice === 'hard' ? $run->hardEvaluations() : $run->evaluations())->whereNotNull('iteration')->get()
             ->sortBy([fn ($a, $b) => $run->metricOf($b->metrics) <=> $run->metricOf($a->metrics), fn ($a, $b) => $a->iteration <=> $b->iteration])
             ->first();
 
@@ -435,7 +565,7 @@ class RunPipeline
             'stage' => 'done',
             'served_name' => $name,
             'best_iteration' => $best?->iteration,
-            'stop_reason' => $stopReason ?? $run->decisions()->reorder('iteration', 'desc')->first()?->stop_rule['reason'],
+            'stop_reason' => $stopReason ?? $run->decisions()->where('slice', $slice)->reorder('iteration', 'desc')->first()?->stop_rule['reason'],
         ]);
     }
 
@@ -444,8 +574,24 @@ class RunPipeline
         return $run->datasets()->where('purpose', $purpose)->where('iteration', $iteration)->first();
     }
 
-    private function evaluation(Run $run, ?int $iteration): ?Evaluation
+    private function evaluation(Run $run, ?int $iteration, string $slice = 'clean'): ?Evaluation
     {
-        return $run->evaluations()->where('iteration', $iteration)->first();
+        return ($slice === 'hard' ? $run->hardEvaluations() : $run->evaluations())->where('iteration', $iteration)->first();
+    }
+
+    private function devEvaluation(Run $run, ?int $iteration): ?Evaluation
+    {
+        return $run->devEvaluations()->where('iteration', $iteration)->first();
+    }
+
+    private function decision(Run $run, int $iteration, string $slice): ?Decision
+    {
+        return $run->decisions()->where('slice', $slice)->where('iteration', $iteration)->first();
+    }
+
+    /** "hard" once the run has an eval-hard set: then it measures the target. */
+    public function targetSlice(Run $run): string
+    {
+        return $this->dataset($run, 'eval-hard') ? 'hard' : 'clean';
     }
 }
