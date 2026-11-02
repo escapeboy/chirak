@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chirak deck</title>
+<style>
+  @page { size: 1600px 900px; margin: 0; }
+  :root { --ink: #0f172a; --muted: #475569; --accent: #4f46e5; --green: #047857; --line: #e2e8f0; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Inter", "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; }
+  .slide { width: 1600px; height: 900px; padding: 80px 100px; page-break-after: always; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .slide:last-child { page-break-after: auto; }
+  h1 { font-size: 88px; margin: 0 0 16px; letter-spacing: -2px; }
+  h2 { font-size: 54px; margin: 0 0 36px; letter-spacing: -1px; }
+  p, li { font-size: 30px; line-height: 1.4; color: var(--muted); }
+  li { margin-bottom: 14px; }
+  ul { padding-left: 34px; margin: 0; }
+  b, strong { color: var(--ink); }
+  .kicker { font-size: 24px; text-transform: uppercase; letter-spacing: 3px; color: var(--accent); font-weight: 700; margin-bottom: 18px; }
+  .foot { position: absolute; bottom: 36px; left: 100px; right: 100px; display: flex; justify-content: space-between; font-size: 18px; color: #94a3b8; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .card { border: 2px solid var(--line); border-radius: 18px; padding: 28px 30px; background: var(--bg); }
+  .card h3 { font-size: 30px; margin: 0 0 10px; }
+  .card p { font-size: 24px; margin: 0; }
+  .big { font-size: 96px; font-weight: 800; letter-spacing: -3px; color: var(--ink); }
+  .big.g { color: var(--green); }
+  .label { font-size: 22px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 26px; }
+  th, td { text-align: left; padding: 14px 16px; border-bottom: 2px solid var(--line); }
+  th { color: var(--muted); font-size: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .note { font-size: 22px; color: var(--muted); margin-top: 22px; }
+  .flow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .step { border: 2px solid var(--accent); color: var(--ink); border-radius: 14px; padding: 18px 22px; font-size: 25px; font-weight: 600; background: #eef2ff; }
+  .arrow { font-size: 34px; color: var(--accent); }
+  .shot { width: 100%; border: 2px solid var(--line); border-radius: 12px; }
+  .title-slide { justify-content: center; background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%); }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 22px; }
+</style>
+</head>
+<body>
+
+<section class="slide title-slide">
+  <div class="kicker">AMD Developer Hackathon ACT III · Reinvent Commerce</div>
+  <h1>Chirak</h1>
+  <p style="font-size:40px;color:var(--ink);max-width:1200px">Describe a task, give a few examples, get a small fine-tuned model that does that one job on your own server.</p>
+  <p style="margin-top:40px">Чирак: apprentice. A large model teaches a small one a single craft.</p>
+  <p style="margin-top:30px;font-size:24px">github.com/escapeboy/chirak · MIT</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Problem</div>
+  <h2>Shops need a narrow model, not a data science team</h2>
+  <ul>
+    <li><b>Narrow, repetitive jobs:</b> route a support ticket, flag what needs a person, set urgency. A general chatbot API is overkill and costs per call forever.</li>
+    <li><b>Data stays home:</b> customer tickets carry names, orders and payment details. In the EU (GDPR) many shops prefer a model on their own server.</li>
+    <li><b>No ML engineer:</b> building a fine-tune means data, an honest eval, training and serving. Small merchants cannot staff that.</li>
+    <li><b>Bulgarian matters:</b> customers write BG, EN and both in one message.</li>
+  </ul>
+  <div class="foot"><span>Chirak</span><span>2</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">What it does</div>
+  <h2>One loop, from description to served adapter</h2>
+  <div class="flow">
+    <div class="step">Task + 15 seed tickets</div><div class="arrow">→</div>
+    <div class="step">Frozen eval (sha256)</div><div class="arrow">→</div>
+    <div class="step">Baseline of the base model</div><div class="arrow">→</div>
+    <div class="step">Synthetic train data</div>
+  </div>
+  <div class="flow" style="margin-top:22px">
+    <div class="arrow">→</div><div class="step">Human checkpoint</div><div class="arrow">→</div>
+    <div class="step">bf16 LoRA training</div><div class="arrow">→</div>
+    <div class="step">Strict eval</div><div class="arrow">→</div>
+    <div class="step">Claude failure analysis</div><div class="arrow">→</div>
+    <div class="step">Stop rules or regenerate</div>
+  </div>
+  <p style="margin-top:50px">The output is a LoRA adapter for Qwen3.5-4B, a public report built from stored results, and a playground that compares the adapter with the base model side by side.</p>
+  <div class="foot"><span>Chirak</span><span>3</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Why it is different</div>
+  <h2>Measured honestly, stopped by rules</h2>
+  <div class="grid2">
+    <div class="card"><h3>Eval first</h3><p>The eval set is generated and frozen with a sha256 before any training data exists. A reply that is not exactly the JSON object counts as wrong.</p></div>
+    <div class="card"><h3>No leakage</h3><p>Train data is written by a different prompt that cannot see eval. Near-copies (bge-m3 cosine ≥ 0.92 or a shared 8-gram) are dropped and counted.</p></div>
+    <div class="card"><h3>Failure-driven data</h3><p>Claude reads the confusion matrix and failures and asks for the next slices in strict JSON. Guidance that quotes eval text is discarded.</p></div>
+    <div class="card"><h3>Deterministic stop</h3><p>Target met, 3 iterations, under 1 point of gain, or leakage over 30%. In code, not left to the LLM. It also says "not worth fine-tuning".</p></div>
+  </div>
+  <div class="foot"><span>Chirak</span><span>4</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Best result · run 6 · merchant ticket triage, BG/EN</div>
+  <h2 style="margin-bottom:24px">All three fields right: 0.65 → 0.93, target met</h2>
+  <div class="grid2" style="grid-template-columns: 1fr 1.15fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>Run 6, exact match</th><th>Score</th></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.651</td></tr>
+        <tr><td>+ LoRA, iteration 1</td><td>0.907</td></tr>
+        <tr><td>+ LoRA, iteration 2 (served)</td><td><b style="color:var(--green)">0.926</b></td></tr>
+      </table>
+      <p class="note">Run 6 (<span class="mono">merchant-triage-orv1o6</span>): clearer guidelines (v2) plus 378 real support chats from the ABCD train split in every training step. Target 0.92 met, so the loop stopped. Exact match means category, urgency and needs_human all correct, on run 6&rsquo;s frozen synthetic eval (215 tickets). Its blind label check kept only unambiguous tickets, so this set is easier than real text: see the right-hand tables.</p>
+    </div>
+    <div>
+      <table>
+        <tr><th>Real tweets, 356, all 3 right</th><th>Score</th></tr>
+        <tr><td>Base 4B (run 6 base: 0.35)</td><td>0.29 – 0.35</td></tr>
+        <tr><td>Run 4, synthetic data only</td><td>0.43</td></tr>
+        <tr><td>Run 5b</td><td>0.56</td></tr>
+        <tr><td>Run 6</td><td><b style="color:var(--green)">0.59</b></td></tr>
+      </table>
+      <table style="margin-top:18px">
+        <tr><th>Own tickets, 146 (run 6)</th><th>Base</th><th>Run 6</th></tr>
+        <tr><td>category</td><td>67.8%</td><td>71.2%</td></tr>
+        <tr><td>urgency</td><td>47.9%</td><td>80.1%</td></tr>
+        <tr><td>needs_human</td><td>76.7%</td><td>85.6%</td></tr>
+      </table>
+      <p class="note">Labels on the real tweets come from Claude, not from people. Live CPU playground: chirak.fleetq.net</p>
+    </div>
+  </div>
+  <div class="foot"><span>Run merchant-triage-orv1o6 · real text labelled by Claude</span><span>5</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Second task · Bulgarian store reviews · labels made by people</div>
+  <h2 style="margin-bottom:24px">Checked against people: accuracy 0.78 → 0.85</h2>
+  <div class="grid2" style="grid-template-columns: 1.15fr 1fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>533 held-out reviews, human labels</th><th>Accuracy</th><th>Macro-F1</th></tr>
+        <tr><td>Always &ldquo;compliment&rdquo;</td><td>0.61</td><td>&ndash;</td></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.78</td><td>0.67</td></tr>
+        <tr><td>Run 7: synthetic data from 15 seeds</td><td>0.84</td><td>0.69</td></tr>
+        <tr><td>Run 8e: v2 guidelines + real reviews, cleaned with Jev</td><td><b style="color:var(--green)">0.85</b></td><td><b style="color:var(--green)">0.74</b></td></tr>
+        <tr><td>Jev, hosted classifier, no training</td><td>0.85&ndash;0.86</td><td>0.68&ndash;0.71</td></tr>
+      </table>
+      <p class="note">906 reviews of 87 Bulgarian shops, labelled by the dataset authors (Harvard Dataverse, CC BY 4.0). Held-out: 182 test reviews + half of the train split nobody read. Guidelines by Claude Code, not a person.</p>
+    </div>
+    <div>
+      <ul>
+        <li><b>Fine-tuning helps:</b> +6 points accuracy over the base model, 95% interval +2.8 to +9.2.</li>
+        <li><b>Self-hosted equals hosted:</b> the 4B adapter on your server matches Jev, no measurable difference.</li>
+        <li><b>Further gains not proven:</b> v2 guidelines and real data add 3&ndash;5 points macro-F1 in four runs, but two identical runs differ by 2&ndash;3.</li>
+      </ul>
+      <p class="note">2.5 GPU hours on one MI350X, about $13. Run 8e is the best of six runs on the same reviews.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Runs store-review-triage-bg-* · held-out eval-own d23711e4…</span><span>6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The first step · run 4 · synthetic data only</div>
+  <h2 style="margin-bottom:24px">Run 4: clean slice 0.84 → 0.98, hard slice 0.77 → 0.84, target not met</h2>
+  <div class="grid2" style="grid-template-columns: 1.05fr 1fr; gap: 40px">
+    <div>
+      <table>
+        <tr><th>Run 4, macro-F1 (category)</th><th>Clean, 215</th><th>Hard, 119</th></tr>
+        <tr><td>Base 4B, no fine-tune</td><td>0.84</td><td>0.77</td></tr>
+        <tr><td>+ LoRA, iteration 1</td><td>0.99</td><td>0.83</td></tr>
+        <tr><td>+ LoRA, iteration 2 (served)</td><td><b>0.98</b></td><td><b>0.84</b></td></tr>
+        <tr><td>+ LoRA, iteration 3</td><td>0.98</td><td>0.83</td></tr>
+      </table>
+      <p class="note">Clean: tickets the 27B generator labels the same way twice, the clear cases. Hard: tickets that check rejected, labelled by a Claude judge and reviewed by Claude Code on the owner's delegation, not by a human. Target 0.92 on the hard slice was not met; the loop stopped at 3 iterations. Hard slice, all 3 fields right: 0.59 → 0.66. Re-scored with <span class="mono">make eval</span>: iteration 2 hard 0.8441, same as stored. Run 6 on the previous slide fixed what run 4 left open.</p>
+    </div>
+    <img class="shot" src="../docs/img/dashboard.png" alt="Run dashboard">
+  </div>
+  <div class="foot"><span>Run merchant-triage-g4oirl (run 4) · eval 6ecec925… · eval-hard c5997a47…</span><span>7</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Built on AMD</div>
+  <h2>Everything runs on one AMD Instinct GPU</h2>
+  <table>
+    <tr><th>Step</th><th>Stack</th><th>Run 4 on MI350X</th></tr>
+    <tr><td>Data generation, Qwen3.8-27B</td><td>vLLM 0.31 on ROCm 7.2</td><td>1000 train items from 3923 candidates, ~6 min</td></tr>
+    <tr><td>Leakage guard, bge-m3</td><td>PyTorch ROCm</td><td>same GPU</td></tr>
+    <tr><td>LoRA training, Qwen3.5-4B bf16</td><td>torch 2.14.1+rocm7.2, peft, trl</td><td>1000 examples, 2 epochs, 130 s, 12 GB</td></tr>
+    <tr><td>Eval and serving</td><td>vLLM, runtime LoRA hot-load</td><td>215 tickets per eval</td></tr>
+  </table>
+  <p class="note">Iteration 1 took about 17 minutes of GPU time, ≈ $1.60 at $5.49/h; the hard slice and two more iterations about 2.3 h more. The spike passed on MI300X (192 GB); on 13 Oct RunPod had no MI300X left, so the demo ran on an MI350X (gfx950, 288 GB) after re-running the training and serving checks there. No QLoRA, no bitsandbytes.</p>
+  <p style="margin-top:26px;font-size:26px"><b>How it is split:</b> a Laravel 12 control plane (run state machine, stop rules, Claude failure analyst, public reports that work with the GPU off) and a FastAPI GPU worker (/generate, /train, /evaluate, /serve, /predict) reached only through an SSH tunnel. Open source, MIT; tests need no GPU.</p>
+  <div class="foot"><span>Chirak</span><span>8</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Market</div>
+  <h2>Who pays first</h2>
+  <div class="grid3">
+    <div class="card"><h3>Online shops</h3><p>Ticket triage, order-intent detection, review moderation in their own languages. Pay per run: GPU time plus a margin. A run like the demo uses about $1.60 of GPU.</p></div>
+    <div class="card"><h3>Regulated sectors</h3><p>Banks, health and public bodies that cannot send texts to an external API. Self-hosted licence: the factory and the adapters run inside their network.</p></div>
+    <div class="card"><h3>Agencies</h3><p>Integrators who build support tooling for many small merchants and need a repeatable way to produce and prove a small model per client.</p></div>
+  </div>
+  <p class="note">This slide is a plan, not traction: there are no customers yet.</p>
+  <div class="foot"><span>Chirak</span><span>9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Next</div>
+  <h2>Next steps</h2>
+  <ul>
+    <li><b>Human-labelled tickets:</b> the store-review task is scored against people; the ticket-triage evals still use labels from a Claude judge. Support tickets labelled by people are next.</li>
+    <li><b>Extraction tasks:</b> order numbers, products, amounts, not only classification.</li>
+    <li><b>Multi-tenant runs</b> on a shared GPU with a queue, and adapters per merchant.</li>
+    <li><b>Preference tuning (DPO)</b> once a classification adapter exists.</li>
+    <li><b>A marketplace of adapters</b> for common commerce tasks, each with its frozen eval and report.</li>
+  </ul>
+  <div class="foot"><span>github.com/escapeboy/chirak</span><span>10</span></div>
+</section>
+
+</body>
+</html>

@@ -21,6 +21,21 @@ class Dataset extends Model
         return $this->belongsTo(Run::class);
     }
 
+    /** Rows in the file. Datasets stored before n_rows existed kept the worker's synthetic-only count in `n`. */
+    public function rows(): int
+    {
+        if (isset($this->stats['n_rows'])) {
+            return (int) $this->stats['n_rows'];
+        }
+
+        return $this->purpose === 'eval' ? $this->n + count($this->run->seed_examples ?? []) : $this->n;
+    }
+
+    public function syntheticRows(): int
+    {
+        return (int) ($this->stats['n'] ?? $this->n);
+    }
+
     public function leakageDropRate(): float
     {
         return (float) ($this->stats['leakage_drop_rate'] ?? 0);
