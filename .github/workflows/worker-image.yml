@@ -33,8 +33,8 @@ jobs:
       # the build runs in a throwaway buildx builder that setup-buildx removes after the job.
       - name: Check free disk space
         run: |
-          df -h "$RUNNER_WORKSPACE"
           avail_gb=$(df -P --block-size=1G "$RUNNER_WORKSPACE" | awk 'NR==2 {print $4}')
+          echo "${avail_gb}G free"
           if [ "$avail_gb" -lt 80 ]; then
             echo "::error::Only ${avail_gb}G free, the worker image build needs about 80G."
             exit 1
