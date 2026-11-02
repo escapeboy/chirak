@@ -3,6 +3,9 @@
         <a href="{{ route('runs.show', $run) }}" class="text-sm text-slate-500 hover:text-brand-600">&larr; {{ $run->name }}</a>
         <h1 class="mt-1 text-2xl font-bold tracking-tight">Playground</h1>
         <p class="text-sm text-slate-500">Send one input to the base model and to the tuned adapter and compare the answers.</p>
+        @if (config('chirak.playground_note'))
+            <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ config('chirak.playground_note') }}</p>
+        @endif
     </div>
 
     <div class="card mb-6 space-y-4">
@@ -23,7 +26,7 @@
         @endif
         <div class="flex items-center gap-3">
             <button wire:click="predict" wire:loading.attr="disabled" class="btn" @disabled(! $unlocked)>Compare</button>
-            <span wire:loading wire:target="predict" class="text-sm text-slate-500">Asking the GPU worker...</span>
+            <span wire:loading wire:target="predict" class="text-sm text-slate-500">Asking both models...</span>
             @unless ($unlocked)<span class="text-sm text-slate-500">Enter the demo token (top right) to run predictions.</span>@endunless
         </div>
         @if ($notice)<p class="text-sm text-amber-700">{{ $notice }}</p>@endif
@@ -36,7 +39,7 @@
     @endif
 
     <div class="grid gap-6 md:grid-cols-2">
-        @foreach ([['Base model', $base, $storedBase, true], ['Tuned adapter'.($run->served_name ? '' : ' (not served yet)'), $adapter, $storedAdapter, (bool) $run->served_name]] as [$title, $result, $stored, $available])
+        @foreach ([['Base model', $base, $storedBase, true], ['Tuned adapter'.($run->served_name ? '' : ' (not served)'), $adapter, $storedAdapter, (bool) $run->served_name]] as [$title, $result, $stored, $available])
             <div class="card">
                 <h2 class="card-title">{{ $title }}</h2>
                 @if ($result)
@@ -61,7 +64,7 @@
                         @endforeach
                     </ul>
                 @elseif (! $available)
-                    <p class="text-sm text-slate-500">The adapter is served after the run completes.</p>
+                    <p class="text-sm text-slate-500">{{ $run->best_iteration ? 'This adapter is not served here. Its scores are in the run report.' : 'The adapter is served after the run completes.' }}</p>
                 @else
                     <p class="text-sm text-slate-500">No prediction yet.</p>
                 @endif

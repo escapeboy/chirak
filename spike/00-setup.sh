@@ -29,7 +29,13 @@ if [ ! -x "$VENV/bin/python" ]; then
   VIRTUAL_ENV=$VENV uv pip freeze | grep -E '^(torch|torchvision|torchaudio)==' > /data/torch-pins.txt
   echo "triton ; sys_platform == 'never'" >> /data/torch-pins.txt
   echo "xformers ; sys_platform == 'never'" >> /data/torch-pins.txt
-  VIRTUAL_ENV=$VENV uv pip install "unsloth[amd]" sentence-transformers --overrides /data/torch-pins.txt
+  # Unsloth needs bitsandbytes and is unusable here (SETUP.md workaround 1); install the pinned
+  # peft backend directly unless INSTALL_UNSLOTH=1 reproduces the original spike.
+  if [ "${INSTALL_UNSLOTH:-0}" = 1 ]; then
+    VIRTUAL_ENV=$VENV uv pip install "unsloth[amd]" sentence-transformers --overrides /data/torch-pins.txt
+  else
+    VIRTUAL_ENV=$VENV uv pip install transformers==5.17.0 peft==0.21.2 trl==1.15.0 sentence-transformers==6.1.0 accelerate datasets safetensors --overrides /data/torch-pins.txt
+  fi
   # bf16 LoRA only: bitsandbytes must not be present.
   VIRTUAL_ENV=$VENV uv pip uninstall bitsandbytes 2>/dev/null || true
   VIRTUAL_ENV=$VENV uv pip freeze > /data/spike/out/pip-freeze-train.txt

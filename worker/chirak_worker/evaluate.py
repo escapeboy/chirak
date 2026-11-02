@@ -44,13 +44,16 @@ def run_evaluate(req: EvaluateRequest, settings: Settings, llm: LlmBackend, ctx:
     done = 0
 
     def one(item: dict) -> dict:
-        try:
-            raw, ms = llm.chat(model, student_messages(spec, item["input"]), temperature=0, max_tokens=256)
-        except Exception as e:  # an infrastructure error is a wrong answer here, not a crashed job
-            raw, ms = "", 0.0
-            got, err = None, f"request failed: {e}"
+        for attempt in range(3):
+            try:
+                raw, ms = llm.chat(model, student_messages(spec, item["input"]), temperature=0, max_tokens=256)
+                break
+            except Exception as e:
+                last = e
         else:
-            got, err = parse_student_answer(raw, spec)
+            # scoring an infrastructure error as a wrong answer would skew baseline vs adapter
+            raise RuntimeError(f"request failed for {item['id']}: {last}")
+        got, err = parse_student_answer(raw, spec)
         return {"id": item["id"], "input": item["input"], "expected": item["output"], "got": got,
                 "raw": raw, "error": err, "latency_ms": round(ms, 1)}
 
@@ -66,8 +69,6 @@ def run_evaluate(req: EvaluateRequest, settings: Settings, llm: LlmBackend, ctx:
         if temp_adapter:
             llm.unload_adapter(temp_adapter)
 
-    if rows and all((r["error"] or "").startswith("request failed") for r in rows):
-        raise RuntimeError(rows[0]["error"])  # vLLM is unreachable: scoring this would report 0% as if it were a result
     metrics = {"label": req.label, "model": req.model, "eval_sha256": file_sha256(eval_path),
                **compute_metrics(spec, rows)}
     tmp = out_dir / "metrics.json.tmp"

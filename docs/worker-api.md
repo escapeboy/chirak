@@ -65,7 +65,7 @@ A dataset item (one JSONL line):
 ```json
 {"id": "eval-0007", "input": "Здравейте, поръчка 1234 още не е пристигнала...",
  "output": {"category": "shipping", "urgency": "normal", "needs_human": false},
- "slice": "shipping", "lang": "bg", "source": "synthetic | human"}
+ "slice": "shipping", "lang": "bg", "source": "synthetic | seed"}
 ```
 
 ## POST /generate
@@ -73,7 +73,7 @@ A dataset item (one JSONL line):
 ```json
 {
   "run_id": "demo-1",
-  "purpose": "eval | train",
+  "purpose": "eval | train | pool",
   "iteration": 1,
   "task_spec": {...},
   "seed_examples": [{"input": "...", "output": {...}}],
@@ -85,7 +85,7 @@ A dataset item (one JSONL line):
 
 - `purpose = eval`: lower temperature (0.7), a prompt asking for realistic, messy, edge-case
   tickets; the `seed_examples` are few-shot style references **and** are written verbatim into
-  the eval file (`source: "human"`). The output is `/data/runs/<run_id>/eval.jsonl` plus
+  the eval file (`source: "seed"`). The output is `/data/runs/<run_id>/eval.jsonl` plus
   `eval.sha256`. If `eval.jsonl` already exists for the run → `409` (eval is frozen; a change
   means a new run). `n` counts synthetic items; seeds come on top.
 - `purpose = train`: higher temperature (1.0), a different prompt template, **no seed examples
@@ -93,6 +93,10 @@ A dataset item (one JSONL line):
   `/data/runs/<run_id>/train-<iteration>.jsonl`. When `target_slices` is given, the n items are
   split per slice and each slice's `guidance` goes into its prompt; otherwise items are spread
   evenly over the primary field's values.
+- `purpose = pool`: the eval path (prompt, seeds in the prompt, temperature 0.7) into
+  `/data/runs/<run_id>/pool-<iteration>.jsonl`, never frozen, seeds not written. It exists to
+  collect the candidates the blind label check rejects, for eval-hard (`chirak_worker/hard_slice.py`).
+  `409` if that pool file already exists.
 - Labels come from conditioning: the worker picks the target output first and asks the
   generator for an input that matches it.
 - Dedup inside the new file: embedding cosine ≥ 0.95 between two new items → drop one.
@@ -109,14 +113,24 @@ Result:
   "n": 1000,
   "n_candidates": 1180,
   "by_slice": {"orders": 143, "...": 0},
-  "dropped": {"duplicate": 40, "leakage_cosine": 120, "leakage_ngram": 20},
+  "dropped": {"duplicate": 40, "leakage_cosine": 120, "leakage_ngram": 20, "label_mismatch": 90},
   "leakage_drop_rate": 0.1186,
-  "frozen": false
+  "frozen": false,
+  "dropped_path": "/data/runs/demo-1/train-1.dropped.jsonl"
 }
 ```
 
 `leakage_drop_rate = (leakage_cosine + leakage_ngram) / n_candidates`, 0 for eval. For eval,
 `frozen = true` and `sha256` is the hash of `eval.jsonl` (also written to `eval.sha256`).
+
+Blind label check (eval and train): every candidate that passed the leakage guard is labelled again
+by the generator with the student's exact prompt (task, fields, guidelines; no target label),
+temperature 0. It is kept only if that answer equals its target output; the rest are counted in
+`dropped.label_mismatch`. Label-conditioned generation draws urgency and flags at random, and the
+generated text does not always support them (seen at CHECKPOINT 1 of run `merchant-triage-wiivan`).
+Every rejected candidate is written to `<file stem>.dropped.jsonl` next to the output (`dropped_path`
+in the result), with `proposed` (the target label), `blind` (the generator's answer, `null` if it did
+not parse) and the generation `round`. Before 2026-10-13 these were only counted.
 
 ## POST /train
 
@@ -188,6 +202,14 @@ hot-loads the adapter. `DELETE /serve/{name}` → `200 {"name": ..., "loaded": f
 `{"model": "base" | "<served name>", "task_spec": {...}, "input": "..."}` → synchronous
 `200 {"raw": "...", "parsed": {...} | null, "valid": true, "error": null, "latency_ms": 143}`.
 Returns `409` while a GPU job is holding the GPU in another mode (e.g. training).
+
+## PUT /runs/{run_id}/files/{name}
+
+Stores the request body as `/data/runs/<run_id>/<name>`. `name` must match `[a-z0-9._-]+\.jsonl`
+(`400` otherwise); the body is at most 8 MB (`413`). Files are write-once: the same content again is
+`200`, different content for an existing name is `409`. The control plane uses it to put the run's
+frozen own-tickets eval (`eval-own.jsonl`) on the worker. Answers
+`200 {"path": "/data/runs/<run_id>/<name>", "sha256": "...", "bytes": 1234}`.
 
 ## GET /artifacts/{run_id}/{path}
 

@@ -1,4 +1,5 @@
 import hashlib
+import re
 import json
 
 from chirak_worker.evaluate import read_jsonl
@@ -19,11 +20,11 @@ def test_generate_eval_writes_frozen_file_with_seeds(client, settings, spec_dict
     path = settings.runs_dir / "demo-1" / "eval.jsonl"
     assert res["path"] == str(path) and res["frozen"] is True and res["leakage_drop_rate"] == 0
     assert res["n"] == 9 and set(res["by_slice"]) == {"orders", "returns", "payments"}
-    assert set(res["dropped"]) == {"duplicate", "leakage_cosine", "leakage_ngram"}
+    assert set(res["dropped"]) == {"duplicate", "leakage_cosine", "leakage_ngram", "label_mismatch"}
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     assert res["sha256"] == digest and (path.parent / "eval.sha256").read_text().strip() == digest
     rows = read_jsonl(path)
-    assert len(rows) == 10 and rows[0]["source"] == "human" and rows[0]["input"] == seeds[0]["input"]
+    assert len(rows) == 10 and rows[0]["source"] == "seed" and rows[0]["input"] == seeds[0]["input"]
     assert {r["source"] for r in rows[1:]} == {"synthetic"} and {r["lang"] for r in rows[1:]} == {"bg", "en"}
     assert all(set(r) == {"id", "input", "output", "slice", "lang", "source"} for r in rows)
     mode, temp, msgs = llm.prompts[0]
@@ -66,17 +67,111 @@ def test_generate_train_uses_leakage_guard_and_hotter_temperature(client, settin
         (res["dropped"]["leakage_cosine"] + res["dropped"]["leakage_ngram"]) / res["n_candidates"], 4)
     rows = read_jsonl(settings.runs_dir / "demo-1" / "train-2.jsonl")
     assert not any("поръчка 4412 още не е пристигнала" in r["input"] for r in rows)
-    assert all(t == 1.0 for _, t, _ in llm.prompts)
+    gen_temps = {t for _, t, m in llm.prompts if "language=" in m[-1]["content"]}
+    relabel_temps = {t for _, t, m in llm.prompts if "language=" not in m[-1]["content"]}
+    assert gen_temps == {1.0} and relabel_temps == {0.0}
     assert "SEED-MUST-NOT-APPEAR" not in json.dumps(llm.prompts) and "4412" not in json.dumps(llm.prompts)
 
 
-def test_generate_train_target_slices(client, spec_dict):
+def test_generated_items_whose_blind_label_disagrees_are_dropped(client, settings, spec_dict, llm):
+    orig = llm.chat
+    flipped = {"n": 0}
+
+    def chat(model, messages, temperature, max_tokens, **extra):
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0 and flipped["n"] < 2:  # the blind re-label disagrees on two candidates
+            flipped["n"] += 1
+            got = json.loads(text)
+            got["urgent"] = not got["urgent"]
+            text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["dropped"]["label_mismatch"] == 2 and res["n"] == 9
+    relabels = [m for _, t, m in llm.prompts if t == 0.0]
+    assert relabels and all("label:" not in m[-1]["content"] for m in relabels)  # the target is never shown
+    kept = read_jsonl(settings.runs_dir / "demo-1" / "eval.dropped.jsonl")
+    assert res["dropped_path"].endswith("eval.dropped.jsonl") and len(kept) == 2
+    assert all(k["blind"]["urgent"] != k["proposed"]["urgent"] and k["reason"] == "label_mismatch" for k in kept)
+    assert all(set(k) == {"id", "input", "proposed", "blind", "slice", "lang", "round", "reason"} for k in kept)
+
+
+def test_pool_uses_the_eval_path_without_touching_the_frozen_eval(client, settings, spec_dict, llm):
+    seeds = [{"input": "Seed ticket about the parcel", "output": {"category": "orders", "urgent": True}}]
+    wait_job(client, client.post("/generate", json=gen_body(spec_dict, seed_examples=seeds)).json()["job_id"])
+    rdir = settings.runs_dir / "demo-1"
+    frozen = (rdir / "eval.jsonl").read_bytes()
+    llm.prompts.clear()
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict, purpose="pool", seed_examples=seeds)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["path"] == str(rdir / "pool-1.jsonl") and res["frozen"] is False
+    assert (rdir / "eval.jsonl").read_bytes() == frozen and (rdir / "pool-1.dropped.jsonl").exists()
+    assert {r["source"] for r in read_jsonl(rdir / "pool-1.jsonl")} == {"synthetic"}
+    _, temp, msgs = llm.prompts[0]
+    assert temp == 0.7 and "Seed ticket" in json.dumps(msgs)
+    assert client.post("/generate", json=gen_body(spec_dict, purpose="pool")).status_code == 409
+
+
+def test_quota_is_filled_when_the_label_check_rejects_most_candidates(client, spec_dict, llm):
+    orig = llm.chat
+    seen = {"n": 0}
+
+    def chat(model, messages, temperature, max_tokens, **extra):
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0:
+            seen["n"] += 1
+            if seen["n"] % 3:  # two of every three candidates disagree
+                got = json.loads(text)
+                got["urgent"] = not got["urgent"]
+                text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    job = wait_job(client, client.post("/generate", json=gen_body(spec_dict, n=30)).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["n"] == 30 and set(res["by_slice"].values()) == {10}
+    assert res["dropped"]["label_mismatch"] >= 40
+
+
+def _eval_for(settings, run_id):
+    d = settings.runs_dir / run_id
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "eval.jsonl").write_text((FIXTURES / "eval.jsonl").read_text())
+    return str(d / "eval.jsonl")
+
+
+def test_generate_train_target_slices(client, settings, spec_dict):
     body = {"run_id": "demo-2", "purpose": "train", "iteration": 1, "task_spec": spec_dict, "n": 8,
             "target_slices": [{"name": "returns", "n": 6, "guidance": "Returns mixed with payment questions."},
-                              {"name": "payments", "n": 2}]}
+                              {"name": "payments", "n": 2}],
+            "avoid_near": [_eval_for(settings, "demo-2")]}
     job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
     assert job["status"] == "succeeded", job["error"]
     assert job["result"]["by_slice"] == {"returns": 6, "payments": 2}
+    assert job["result"]["guidance_rejected"] == 0
+
+
+def test_train_requires_own_eval_in_avoid_near(client, settings, spec_dict):
+    _eval_for(settings, "demo-3")
+    body = {"run_id": "demo-3", "purpose": "train", "iteration": 1, "task_spec": spec_dict, "n": 4}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "avoid_near" in r.json()["detail"]
+
+
+def test_guidance_quoting_eval_is_dropped(client, settings, spec_dict, llm):
+    body = {"run_id": "demo-4", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4,
+            "target_slices": [{"name": "orders", "n": 4,
+                               "guidance": "Write tickets like 'поръчка 4412 още не е пристигнала' please."}],
+            "avoid_near": [_eval_for(settings, "demo-4")]}
+    job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    assert job["result"]["guidance_rejected"] == 1
+    assert "4412" not in json.dumps(llm.prompts)
 
 
 def test_generate_rejects_bad_input(client, settings, spec_dict):
@@ -197,3 +292,77 @@ def test_evaluate_fails_when_vllm_is_unreachable(client, settings, spec_dict, ll
     body = {"run_id": "demo-1", "eval_file": str(ev), "model": "base", "task_spec": spec_dict, "label": "b"}
     job = wait_job(client, client.post("/evaluate", json=body).json()["job_id"])
     assert job["status"] == "failed" and "request failed" in job["error"]
+
+
+def test_evaluate_fails_when_a_request_keeps_failing(client, settings, spec_dict, llm):
+    ev = _eval_setup(settings)
+
+    def boom(*a, **k):
+        raise ConnectionError("vLLM down")
+
+    llm.chat = boom
+    body = {"run_id": "demo-1", "eval_file": str(ev), "model": "base", "task_spec": spec_dict, "label": "baseline"}
+    job = wait_job(client, client.post("/evaluate", json=body).json()["job_id"])
+    assert job["status"] == "failed" and "request failed" in job["error"]
+    assert not (settings.runs_dir / "demo-1" / "evals" / "baseline" / "metrics.json").exists()
+
+
+def test_train_must_also_avoid_eval_hard_when_the_run_has_one(client, settings, spec_dict):
+    ev = _eval_for(settings, "demo-5")
+    (settings.runs_dir / "demo-5" / "eval-hard.jsonl").write_text((FIXTURES / "eval.jsonl").read_text())
+    body = {"run_id": "demo-5", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4, "avoid_near": [ev]}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "eval-hard" in r.json()["detail"]
+    body["avoid_near"] = [ev, str(settings.runs_dir / "demo-5" / "eval-hard.jsonl")]
+    assert wait_job(client, client.post("/generate", json=body).json()["job_id"])["status"] == "succeeded"
+
+
+class FakeJudge:
+    model = "fake-claude"
+
+    def __init__(self, agree_every=2):
+        self.usage = {"requests": 0}
+        self.calls = {}
+        self.agree_every = agree_every
+
+    def label(self, spec, text):
+        self.usage["requests"] += 1
+        pairs = dict(re.findall(r'(\w+)=("[^"]*"|true|false)', text))  # fake texts carry their target label
+        target = {k: json.loads(v) for k, v in pairs.items()}
+        n = int(re.search(r"zq(\d+)x", text).group(1))
+        return (target if n % self.agree_every == 0 else {**target, "urgent": not target["urgent"]}), "{}"
+
+
+def test_judge_rescues_some_label_check_rejects_up_to_the_cap(client, settings, spec_dict, llm, services):
+    judge = FakeJudge()
+    services.judge_factory = lambda: judge
+    orig = llm.chat
+
+    def chat(model, messages, temperature, max_tokens, **extra):  # the generator's blind label always disagrees
+        text, ms = orig(model, messages, temperature, max_tokens, **extra)
+        if temperature == 0.0:
+            got = json.loads(text)
+            got["urgent"] = not got["urgent"]
+            text = json.dumps(got)
+        return text, ms
+
+    llm.chat = chat
+    body = {"run_id": "demo-6", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 6,
+            "target_slices": [{"name": "returns", "n": 6}], "avoid_near": [_eval_for(settings, "demo-6")], "judge_cap": 10}
+    job = wait_job(client, client.post("/generate", json=body).json()["job_id"])
+    assert job["status"] == "succeeded", job["error"]
+    res = job["result"]
+    assert res["judge"]["judged"] == 10 and res["judge"]["accepted"] >= 4 and res["judge"]["model"] == "fake-claude"
+    assert judge.usage["requests"] == 20  # two passes per judged item
+    rows = read_jsonl(settings.runs_dir / "demo-6" / "train-2.jsonl")
+    assert rows and all(r["label_check"] == "judge" for r in rows) and len(rows) == res["judge"]["kept"]
+    dropped = read_jsonl(settings.runs_dir / "demo-6" / "train-2.dropped.jsonl")
+    assert sum("judge" in d for d in dropped) == 10 - res["judge"]["accepted"]
+
+
+def test_judge_cap_without_an_api_key_is_rejected(client, settings, spec_dict, services, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    body = {"run_id": "demo-7", "purpose": "train", "iteration": 2, "task_spec": spec_dict, "n": 4,
+            "avoid_near": [_eval_for(settings, "demo-7")], "judge_cap": 5}
+    r = client.post("/generate", json=body)
+    assert r.status_code == 400 and "ANTHROPIC_API_KEY" in r.json()["detail"]

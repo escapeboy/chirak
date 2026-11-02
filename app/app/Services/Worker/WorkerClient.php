@@ -3,6 +3,7 @@
 namespace App\Services\Worker;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -26,6 +27,21 @@ class WorkerClient
         return $this->post('/evaluate', $payload)->json('job_id');
     }
 
+    /** Stores a JSONL file as /data/runs/<run>/<name>; the worker refuses to replace it with other content. */
+    public function putFile(string $runId, string $name, string $body): array
+    {
+        return $this->send(fn () => $this->request(120)->withBody($body, 'application/x-ndjson')->put("/runs/$runId/files/$name"))->json();
+    }
+
+    /**
+     * Removes the run's own-tickets file and eval-own results from the worker, and with $trainReal its train-real
+     * file (a follow-up run trained on own tickets). Idempotent. @return array{deleted: string[]}
+     */
+    public function deleteOwn(string $runId, bool $trainReal = false): array
+    {
+        return $this->send(fn () => $this->request()->delete("/runs/$runId/own".($trainReal ? '?train_real=1' : '')))->json();
+    }
+
     public function job(string $jobId): array
     {
         return $this->get('/jobs/'.$jobId)->json();
@@ -39,6 +55,28 @@ class WorkerClient
     public function predict(string $model, array $taskSpec, string $input): array
     {
         return $this->post('/predict', ['model' => $model, 'task_spec' => $taskSpec, 'input' => $input], 90)->json();
+    }
+
+    /**
+     * The same input to several models at once (the playground's base vs adapter): on a CPU host each
+     * answer takes seconds, so asking in parallel halves the wait. Keyed by model.
+     */
+    public function predictMany(array $models, array $taskSpec, string $input): array
+    {
+        $responses = Http::pool(fn (Pool $pool) => array_map(
+            fn ($model) => $pool->as($model)->baseUrl(rtrim(config('chirak.worker.base_url'), '/'))
+                ->withToken((string) config('chirak.worker.token'))->acceptJson()->timeout(90)
+                ->post('/predict', ['model' => $model, 'task_spec' => $taskSpec, 'input' => $input]),
+            $models,
+        ));
+
+        return array_map(function ($response) {
+            if ($response instanceof ConnectionException) {
+                throw new WorkerUnreachable($response->getMessage(), 0, $response);
+            }
+
+            return $this->check($response)->json();
+        }, $responses);
     }
 
     /** Full health body, or null when the worker cannot be reached or rejects the token. */

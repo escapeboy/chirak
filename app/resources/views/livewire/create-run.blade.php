@@ -4,6 +4,10 @@
         <p class="text-sm text-slate-500">Describe the task and give a few labelled examples. Chirak generates the data, tunes a small model and measures the gain on a frozen eval set.</p>
     </div>
 
+    @if (config('chirak.readonly'))
+        <div class="card text-sm text-slate-600">This is a read-only demo without a GPU worker, so new runs cannot be started here. The stored runs and the playground are available from the <a class="underline" href="{{ route('home') }}">run list</a>.</div>
+    @else
+
     <form wire:submit="start" class="space-y-6">
         <div class="card space-y-4">
             <h2 class="card-title">Task</h2>
@@ -38,7 +42,7 @@
             <h2 class="card-title">Target and size</h2>
             <div class="grid gap-4 sm:grid-cols-4">
                 <div><label class="label" for="tm">Metric</label>
-                    <select id="tm" class="input" wire:model="targetMetric"><option value="macro_f1">Macro-F1</option><option value="accuracy">Accuracy</option></select></div>
+                    <select id="tm" class="input" wire:model="targetMetric"><option value="macro_f1">Macro-F1</option><option value="accuracy">Accuracy</option><option value="exact_match">All fields right (exact match)</option></select></div>
                 <div><label class="label" for="tv">Target (0 to 1)</label><input id="tv" type="number" step="0.01" class="input" wire:model="targetValue">@error('targetValue')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
                 <div><label class="label" for="en">Eval items</label><input id="en" type="number" class="input" wire:model="evalN">@error('evalN')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
                 <div><label class="label" for="tn">Train items per iteration</label><input id="tn" type="number" class="input" wire:model="trainN">@error('trainN')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
@@ -51,4 +55,5 @@
             @error('token')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
         </div>
     </form>
+    @endif
 </div>
